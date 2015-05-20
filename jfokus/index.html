@@ -1,0 +1,245 @@
+<!DOCTYPE html> 
+<html>
+	<head> 
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		
+		<title>Jfokus</title> 
+		
+		<script type="text/javascript">
+		  var _gaq = _gaq || [];
+		  _gaq.push(['_setAccount', 'UA-24008188-1']);
+		  _gaq.push(['_trackPageview']);
+	
+		  (function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		  })();
+		</script>
+		
+		<meta name="viewport" content="width=device-width, initial-scale=1"> 
+		<link rel="stylesheet" href="jquery.mobile-1.2.0.min.css" />
+		<link rel="stylesheet" href="loader.css" />
+		<script src="jquery-1.8.2.min.js"></script>
+		<script src="jquery.mobile-1.2.0.min.js"></script>
+		<script type="text/javascript" src="handlebars-1.0.rc2.js"></script>
+		
+		<style type="text/css">
+			.ui-li-desc {
+				white-space: normal;
+			}
+			
+			.portrait {
+				border-radius: 5px;
+				-moz-border-radius: 5px;
+				-webkit-border-radius: 5px;
+				-webkit-box-shadow: 3px 3px 3px rgba(0, 0, 0, 1);
+				-moz-box-shadow: 3px 3px 3px rgba(0, 0, 0, 1);
+				box-shadow: 3px 3px 3px rgba(0, 0, 0, 1);
+				width: 94px;
+				margin-right: 8px;
+				float: left;
+			}
+			
+		</style>
+		
+		<script type="text/javascript" src="jfokus.js"></script>
+	</head> 
+	<body> 
+		<div data-role="page" id="loadingPage">
+			<div data-role="header" data-position="fixed">
+				<h1>Jfokus</h1>
+			</div>
+			<div data-role="content">
+				<div class="windows8">
+					<div class="wBall" id="wBall_1">
+						<div class="wInnerBall">
+						</div>
+					</div>
+					<div class="wBall" id="wBall_2">
+						<div class="wInnerBall">
+						</div>
+					</div>
+					<div class="wBall" id="wBall_3">
+						<div class="wInnerBall">
+						</div>
+					</div>
+					<div class="wBall" id="wBall_4">
+						<div class="wInnerBall">
+						</div>
+					</div>
+					<div class="wBall" id="wBall_5">
+						<div class="wInnerBall">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div data-role="page" id="mainPage">
+			<div data-role="header" data-position="fixed">
+				<h1>Jfokus</h1>
+				<a href="#aboutPage" data-rel="popup" data-icon=info class="ui-btn-right">About</a>
+			</div>
+			<div data-role="content">
+				<ul data-role="listview" data-inset="true" data-divider-theme="a" id="mainUl">
+				</ul>
+
+				<div data-role="popup" data-position-to="window" data-overlay-theme="a" 
+					data-transition="pop" id="aboutPage">
+					<div data-role="header">
+						<h1>About</h1>
+					</div>
+					<div data-role="content">
+						<p>
+							Built by <a href="http://twitter.com/#!/danielpettersso" rel="external">@DanielPettersso</a>. 
+							Data from <a href="http://www.jfokus.se/jfokus/page.jsp?id=rest" rel="external">Jfokus REST</a>
+							via <a href="http://developer.yahoo.com/yql/" rel="external">Yahoo YQL</a> to get jsonp.
+							Using <a href="http://jquery.com/" rel="external">jQuery</a>, 
+							<a href="http://jquerymobile.com/" rel="external">jQuery Mobile</a> and 
+							<a href="http://handlebarsjs.com/" rel="external">Handlebars</a>
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script id="event-template" type="text/x-handlebars-template">
+			<li data-role="list-divider">Choose event</li>
+			{{#each items}}
+				<li class="listUlItem" id="{{id}}">
+					<a>
+						<h3>{{name}}</h3>
+						<p>{{substr 0 10 from}} - {{substr 0 10 to}}</p>
+						<p>{{description}}</p>
+					</a>
+				</li>
+			{{/each}}  			
+		</script>
+		
+		<div data-role="page" id="schedulePage">
+			<div data-role="header" data-position="fixed">
+				<a href="#mainPage" data-icon="back" data-direction="reverse">Events</a>
+				<h1>Schedule</h1>
+				<a id="speakersButton" data-icon="star" class="ui-btn-right">Speakers</a>
+				<div data-role="navbar">
+					<ul id="daynavbar">
+						<li data-day="1"><a href="#">Day one</a></li>
+						<li data-day="2"><a href="#">Day two</a></li>
+						<li data-day="3"><a href="#">Day three</a></li>
+					</ul>
+				</div>
+			</div>
+			<div data-role="content">
+				<ul data-role="listview" data-inset="true" data-filter="true" data-divider-theme="a" id="scheduleUl">
+				</ul>
+			</div>
+		</div>
+		<script id="schedule-template" type="text/x-handlebars-template">
+			{{#each items}}
+				{{#if presentationUri}}
+					<li class="listUlItem">
+					<div class="hiddenPresUri" style="display: none;">{{presentationUri}}</div>
+					<a>
+						<h3>{{title}}</h3>
+						<p>
+							{{substr 10 16 fromTime}} - {{substr 10 16 toTime}}, {{room}}{{#each speakers}}, {{speaker}}{{/each}} 
+						</p>
+					</a>
+				</li>
+				{{else}}
+					<li class="listUlItem" data-role="list-divider" >
+						<h3>{{code}}</h3>
+						{{#if fromTime}}
+							<p>{{substr 10 16 fromTime}} - {{substr 10 16 toTime}}</p>
+						{{/if}}
+					</li>
+				{{/if}}
+			{{/each}}  			
+		</script>
+		
+		<div data-role="page" id="presentationDetailsPage">
+			<div data-role="header" data-position="fixed">
+				<a href="#schedulePage" data-icon="back" data-direction="reverse" id="presentationDetailsBackButton">Back</a>
+				<h1>Presentation</h1>
+			</div>
+			<div data-role="content" id="presentationDetailsUl">
+			</div>
+		</div>
+		<script id="presentationDetails-template" type="text/x-handlebars-template">
+			{{#with items}}
+				<h3>{{title}}</h3>
+				<p><b>Summary</b><br>{{summary}}</p>
+				<div id="presentationSpeakerDetail"></div>
+				<p><b>Tags</b><br>
+					{{#each tags}}
+						{{name}}{{#unless last}}, {{/unless}}
+					{{/each}}
+				</p>
+				<p><b>Experience</b><br>{{experience}}</p>
+			{{/with}}  	
+		</script>
+		<script id="presentationSpeaker-template" type="text/x-handlebars-template">
+			{{#with items}}
+				<p>
+					<b>{{firstName}} {{lastName}}{{#if company}} - {{company}}{{/if}}</b><br>
+					<img src="{{imageURI}}" class="portrait"/>
+					{{bio}}
+					<br clear="all">
+				</p>
+			{{/with}}  	
+		</script>
+		
+		<div data-role="page" id="speakersPage">
+			<div data-role="header" data-position="fixed">
+				<a href="#schedulePage" data-icon="back" data-direction="reverse">Schedule</a>
+				<h1>Speakers</h1>
+			</div>
+			<div data-role="content">
+				<ul data-role="listview" data-filter="true" data-autodividers="true" data-inset="true" data-divider-theme="a" id="speakersUl">
+				</ul>
+			</div>
+		</div>
+		<script id="speakers-template" type="text/x-handlebars-template">
+			{{#each items}}
+				<li class="listUlItem" id="{{id}}">
+					<a>
+						<img src="{{imageURI}}" width="63" height="80" />
+						<h3>{{firstName}} {{lastName}}</h3>
+						<p>{{company}}</p>
+						<div class="ui-li-count">
+							{{talks.length}}
+						</div>
+					</a>
+				</li>
+			{{/each}}  			
+		</script>
+		
+		<div data-role="page" id="speakerDetailsPage">
+			<div data-role="header" data-position="fixed">
+				<a href="#speakersPage" data-icon="back" data-direction="reverse">Back</a>
+				<h1>Speaker</h1>
+			</div>
+			<div data-role="content" id="speakerDetailsContent">
+			</div>
+		</div>
+		<script id="speakerDetails-template" type="text/x-handlebars-template">
+			{{#with items}}
+				<h3>{{firstName}} {{lastName}}{{#if company}} - {{company}}{{/if}}</h3>
+				<img src="{{imageURI}}" class="portrait"/>
+				{{bio}}
+				<br clear="all">
+				<br clear="all">
+				<ul data-role="listview" data-inset="true" data-divider-theme="a" id="speakerDetailsUl">
+					<li data-role="list-divider">Talks</li>
+					{{#each talks}}
+						<li class="listUlItem" data-presuri="{{presentationUri}}">
+							<a>
+								{{title}}
+							</a>
+						</li>
+					{{/each}}
+				</ul>
+			
+			{{/with}}  	
+		</script>
+	</body>
+</html>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://java.sun.com/xml/ns/javaee"
+xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
+	
+	<mime-mapping>
+	    <extension>ogv</extension>
+	    <mime-type>video/ogg</mime-type>
+	</mime-mapping>
+	<mime-mapping>
+	    <extension>webm</extension>
+	    <mime-type>video/webm</mime-type>
+	</mime-mapping>
+	<mime-mapping>
+	    <extension>manifest</extension>
+	    <mime-type>text/cache-manifest</mime-type>
+	</mime-mapping>
+	<mime-mapping>
+	    <extension>css</extension>
+	    <mime-type>text/css</mime-type>
+	</mime-mapping>
+	<mime-mapping>
+	    <extension>svg</extension>
+	    <mime-type>image/svg+xml</mime-type>
+	</mime-mapping>
+</web-app>

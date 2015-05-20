@@ -1,0 +1,242 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml"> 
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/> 
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+		<script type="text/javascript" src="../resources/DAT.GUI.min.js"></script>
+		<script src="../resources/RequestAnimationFrame.js" type="text/javascript"></script>
+		<script>
+			var movers = new Array();
+			var mouseX = -1;
+			var mouseY = -1;
+			var canvas;
+			var ctx;
+			var doDraw = false;
+			var frameNum = 0;
+
+			var params = {
+				mousePower: 10.0,
+				bounce: 0.9,
+				friction: 0.995,
+				gravity: 0.02,
+				opacity: 0.15,
+				numLines: 50,
+				lineWidth: 1,
+				bgFade: 0
+			};
+			
+			function mousemove(e) {
+				mouseX = e.pageX;
+				mouseY = e.pageY;
+			};
+			
+			function mouseout(e) {
+				mouseX = -1;
+				mouseY = -1;
+			};
+			
+			function mousedown(e) {
+				var col = randomColor();
+				
+				var len = movers.length;
+				for(var j = len; j < params.numLines + len; j++) {
+					movers[j] = new Mover(j, col, params.lineWidth);
+					movers[j].setPos(mouseX, mouseY);
+				}
+				doDraw = true;
+			};
+			
+			function mouseup(e) {
+				doDraw = false;
+			};
+			
+			function windowResize() {
+				canvas.width = window.innerWidth;
+				canvas.height = window.innerHeight;
+			}
+			
+			function randomColor() {
+				return 'rgba(' + Math.round(Math.random()*200) + ',' + Math.round(Math.random()*200) + ',' + Math.round(Math.random()*200) + ',' + params.opacity + ')';
+			}
+
+			function bgColor() {
+				return 'rgba(255,255,255,' + params.bgFade + ')';
+			}
+			
+			function init() {
+				canvas = document.getElementById("canvas");
+				canvas.width = window.innerWidth;
+				canvas.height = window.innerHeight;
+				ctx = canvas.getContext("2d");
+				ctx.lineWidth = params.lineWidth;
+				ctx.fillStyle = bgColor();
+
+				var gui = new DAT.GUI({
+					height : 8 * 32 - 1
+				}); 
+				gui.add(params, 'mousePower').min(0.0).max(100.0).step(1);
+				gui.add(params, 'bounce').min(0.0).max(2.0).step(0.1);
+				gui.add(params, 'friction').min(0.7).max(1.2).step(0.02);
+				gui.add(params, 'gravity').min(0.0).max(0.1).step(0.01);
+				gui.add(params, 'opacity').min(0.0).max(0.5).step(0.02);
+				gui.add(params, 'numLines').min(1).max(1000).step(1);
+				gui.add(params, 'lineWidth').min(1).max(100).step(1);
+				gui.add(params, 'bgFade').min(0).max(0.5).step(0.01).onChange(function(newValue) {
+					  ctx.fillStyle = bgColor();
+				});
+				gui.close()
+
+				canvas.addEventListener("touchstart", function(e) {
+					mouseX = e.changedTouches[0].clientX;
+					mouseY = e.changedTouches[0].clientY;
+					mousedown();
+					e.preventDefault();
+				}, false);
+
+				canvas.addEventListener("touchend", function(e) {
+					doDraw = false;
+					e.preventDefault();
+				}, false);
+
+				canvas.addEventListener("touchmove", function(e) {
+					mouseX = e.changedTouches[0].clientX;
+					mouseY = e.changedTouches[0].clientY;
+					e.preventDefault();
+				}, false);
+
+				draw();
+			}
+			
+			function draw() {
+
+				frameNum++;
+				if(params.bgFade > 0) {
+					if(frameNum % 5 == 0) {
+						ctx.fillRect(0,0,canvas.width,canvas.height);
+					}
+				}
+				for(var i = 0; i < movers.length; i++) {
+					movers[i].update();
+				}
+				requestAnimationFrame( draw );
+			}			
+			
+			function Mover(i, col, lineWidth) {
+				this.x = 0;
+				this.y = 0;
+				this.dx = 0;
+				this.dy = 0;
+				this.index = i;
+				this.dead = false;
+				this.col = col;
+				this.lineWidth = lineWidth;
+				
+				this.setPos = function(xx, yy) {
+					this.x = xx + Math.random()*20-10;
+					this.y = yy + Math.random()*20-10;
+					this.dx = Math.random()-0.5;
+					this.dy = Math.random()-0.5;
+				};
+				
+				this.update = function() {
+					if(this.dead) {
+						return;
+					} 
+					if(Math.abs(this.dx) < 0.1 && Math.abs(this.dy) < 0.1) {
+						this.dead = true;
+					}
+
+					ctx.strokeStyle = this.col;
+					ctx.lineWidth = this.lineWidth;
+					ctx.beginPath();
+					ctx.moveTo(this.x, this.y);
+
+					this.x += this.dx;
+					this.y += this.dy;
+					
+					if(this.x < 0) {
+						this.dx = -this.dx*params.bounce;
+						this.x = 0;
+					} else if(this.x > canvas.width) {
+						this.dx = -this.dx*params.bounce;
+						this.x = canvas.width;
+					} else {
+						this.dx = this.dx*params.friction;
+					}
+					
+					if(this.y < 0) {
+						this.dy = -this.dy*params.bounce;
+						this.y = 0;
+					} else if(this.y > canvas.height)   {
+						this.dy = -this.dy*params.bounce;
+						this.y = canvas.height;
+					} else {
+						this.dy = this.dy * params.friction + params.gravity;
+					}
+					if(mouseX != -1 && mouseY != -1 && doDraw) {
+						this.calculateAttraction();
+					}
+					
+					ctx.lineTo(this.x, this.y);
+					ctx.stroke();
+					ctx.closePath();
+				};
+				
+				this.getDistance = function(xdist, ydist) {
+					return Math.sqrt(xdist*xdist + ydist*ydist);
+				};
+				
+				this.getAngle = function(xdist, ydist) {
+					return Math.atan2(ydist, xdist) + Math.PI;
+				};
+				
+				this.calculateAttraction = function() {
+					var	xx = mouseX;
+					var	yy = mouseY;
+					
+					var xdist = (this.x) - xx;
+					var ydist = (this.y) - yy;
+					var dist = this.getDistance(xdist, ydist);
+					if(dist > 10) {
+						var angle = this.getAngle(xdist, ydist);
+						
+						this.dx += Math.cos(angle)*(1/dist)*params.mousePower;
+						this.dy += Math.sin(angle)*(1/dist)*params.mousePower;
+					}
+				}
+			}
+		</script>
+		
+		<script type="text/javascript">
+
+		  var _gaq = _gaq || [];
+		  _gaq.push(['_setAccount', 'UA-24008188-1']);
+		  _gaq.push(['_trackPageview']);
+
+		  (function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		  })();
+
+		</script>
+
+		<style> 
+			body {
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+			}
+			.overlay {
+				position: absolute;
+				padding: 5px;
+				bottom: 0px;
+			}
+		</style>		
+
+	</head>
+	<body onload="init();" onResize="windowResize();">
+		<div class="overlay"><a href="http://twitter.com/share" class="twitter-share-button" data-url="http://uglyhack.appspot.com/chaosdraw/" data-count="horizontal" data-via="DanielPettersso">Tweet</a><script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script></div>
+		<canvas id="canvas" onmousemove="mousemove(event);" onmouseout="mouseout(event);" onmousedown="mousedown(event)" onmouseup="mouseup(event)"/>
+	</body>
+</html>

@@ -1,0 +1,42 @@
+<project>
+	<target name="concatenate" description="Concatenate all js files">
+	    <concat destfile="build/application.js">
+	        <filelist dir="js">
+	        	<file name="class.js" />
+	        	<file name="soundVisualizer.js" />
+        		<file name="baseNode.js" />
+	        	<file name="biquadFilterNode.js" />
+        		<file name="convolverNode.js" />
+	        	<file name="delayNode.js" />
+	        	<file name="destinationNode.js" />
+        		<file name="dynamicsCompressorNode.js" />
+	        	<file name="gainNode.js" />
+        		<file name="scriptNode.js" />
+	        	<file name="sourceNode.js" />
+	        	<file name="waveShaperNode.js" />
+        		<file name="oscillatorNode.js" />
+	        	<file name="microphoneNode.js" />
+        		<file name="analyzerNode.js" />
+	        	<file name="textToSpeechNode.js" />
+	        	<file name="pianoNode.js" />
+        		<file name="noiseNode.js" />
+        		<file name="vibratoNode.js" />
+	        	<file name="pitchNode.js" />
+        		<file name="saveHandler.js" />
+	        	<file name="main.js" />
+	        </filelist>
+	    </concat>
+	</target>
+	
+	<target name="compress" depends="concatenate" description="Compress application.js to application-min.js">
+	    <apply executable="java" parallel="false">
+	        <filelist dir="build" files="application.js" />
+	        <arg line="-jar" />
+	        <arg path="lib/yuicompressor-2.4.7.jar" />
+	        <srcfile />
+	        <arg line="-o" />
+	        <mapper type="glob" from="*.js" to="build/*-min.js" />
+	        <targetfile />
+	    </apply>
+	</target>
+</project>

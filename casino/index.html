@@ -1,0 +1,100 @@
+<html>
+	<head>
+		<style type="text/css">
+			body {
+				overflow: hidden;
+			}
+			
+			#experiment {
+				-webkit-perspective: 1000; 
+				-webkit-transform-style: preserve-3d;
+			}
+			
+			#hand {
+				-webkit-transform-style: preserve-3d;
+				-webkit-transform: rotateX(40deg);
+			}
+
+			.table {
+				position:absolute;
+				-webkit-transform: translateZ(0px) translateX(-300px) translateY(-350px);
+			}
+		
+			.card {
+				position:absolute;
+				width:200px;
+				height:300px;
+				-webkit-backface-visibility: hidden;
+				-webkit-transition-duration: 1s;
+				-webkit-box-shadow:0 10px 20px #000;
+				-webkit-border-radius: 20;
+			}
+		
+			#nr1 {
+				-webkit-transform: translateX(200px) translateY(100px) translateZ(40px) rotateZ(0deg);
+			}
+
+			#nr1:hover {
+				-webkit-transform: translateX(200px) translateY(100px) translateZ(40px) rotateZ(-10deg);
+			}
+			
+			#nr2 {
+				-webkit-transform: translateX(250px) translateY(120px) translateZ(50px) rotateZ(10deg);
+			}
+			
+			#nr2:hover {
+				-webkit-transform: translateX(250px) translateY(120px) translateZ(50px) rotateZ(0deg);
+			}
+			
+			#nr3 {
+				-webkit-transform: translateX(300px) translateY(160px) translateZ(70px) rotateZ(20deg);
+			}
+			
+			#nr3:hover {
+				-webkit-transform: translateX(300px) translateY(160px) translateZ(70px) rotateZ(0deg);
+			}
+			
+			#nr4 {
+				-webkit-transform: translateX(350px) translateY(200px) translateZ(90px) rotateZ(30deg);
+			}
+			
+			#nr4:hover {
+				-webkit-transform: translateX(350px) translateY(200px) translateZ(90px) rotateZ(10deg);
+			}
+			
+			#nr5front {
+				-webkit-transform: translateX(400px) translateY(240px) translateZ(110px) rotateZ(40deg) rotateY(0deg);
+			}	
+
+			#nr5back {
+				-webkit-transform: translateX(400px) translateY(240px) translateZ(110px) rotateZ(40deg) rotateY(180deg);
+			}
+			
+			#doublecard:hover #nr5front {
+				-webkit-transform: translateX(400px) translateY(240px) translateZ(180px) rotateZ(0deg) rotateY(-180deg) rotateX(30deg);
+			}
+			
+			#doublecard:hover #nr5back {
+				-webkit-transform: translateX(400px) translateY(240px) translateZ(180px) rotateZ(0deg) rotateY(0deg) rotateX(-30deg);
+			}
+
+		</style>
+	</head>
+	<body>
+		<div id="experiment">
+			<div id="hand">
+				<img class="table" src="table.jpg"/>
+				<img class="card" id="nr1" src="back.jpg"/>
+				<img class="card" id="nr2" src="back.jpg"/>
+				<img class="card" id="nr3" src="back.jpg"/>
+				<img class="card" id="nr4" src="back.jpg"/>
+				<div id="doublecard">
+					<img class="card" id="nr5front" src="back.jpg"/>
+					<img class="card" id="nr5back" src="jack-hearts.png"/>
+				</div>
+				
+				
+			</div>
+		</div>
+	</body>
+</html>

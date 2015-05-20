@@ -1,0 +1,507 @@
+<!DOCTYPE html> 
+<html>
+	<head> 
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		
+		<title>WebAudioToy</title> 
+
+		<link href="css/bootstrap.min.css" rel="stylesheet">
+		<link href='http://fonts.googleapis.com/css?family=Love+Ya+Like+A+Sister' rel='stylesheet' type='text/css'>
+		<link rel="stylesheet" href="http://code.jquery.com/ui/1.8.20/themes/base/jquery-ui.css" type="text/css" media="all" />
+		
+		<style>
+			div.node {
+				background-color: white;
+				border: 1px solid rgba(0, 0, 0, 0.3);
+				-webkit-border-radius: 6px;
+				border-radius: 6px;
+				box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+				-webkit-background-clip: padding-box;
+				-moz-background-clip: padding-box;
+				background-clip: padding-box;
+				width: 150px;
+				height:150px;
+				cursor: move;
+				z-index: 2;
+			}
+
+			div.nodeheader {
+				position: absolute;
+				width: 100%;
+				box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+				padding: 5px 5px;
+				border-bottom: 1px solid rgb(238, 238, 238);
+				background-color: whiteSmoke;
+				-webkit-border-radius: 6px;
+				border-radius: 6px;
+			}
+			
+			div.nodebody {
+				position: absolute;
+				top: 30px;
+				margin: 6px 6%;
+				width: 88%;
+			}
+			
+			div.nodeheader .close {
+				font-size: 14px;
+			}
+
+			div.nodehandle {
+				width:20px;
+				height:20px;
+				margin: 0px;
+  				
+				background-color: white;
+				border: 1px solid rgba(0, 0, 0, 0.3);
+				-webkit-border-radius: 6px;
+				border-radius: 6px;
+				box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+				-webkit-background-clip: padding-box;
+				-moz-background-clip: padding-box;
+				background-clip: padding-box;
+				z-index: 2;
+			}
+			
+			.nodedrag {
+				position: absolute;
+				-webkit-transition: background 1s, box-shadow 1s;
+				transition: background 1s, box-shadow 1s;
+			}
+			
+			.nodedrag:hover {
+				border-color: rgba(0,200,0, 0.3);
+				box-shadow: 0 3px 7px rgba(0, 100, 0, 0.3);
+			}
+
+			.nodedrop {
+				position: absolute;
+				left: -26px;
+				top: 64px;
+				cursor: auto;
+			}
+			
+			div.nodebig {
+				width:300px;
+				height:250px;
+			}
+
+			div.linecont{
+			  	height: 30px;
+				cursor: pointer;
+			}
+			
+			div.line{
+			  	height: 3px;
+			  	background: rgb(85,85,85);
+			  	box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+			  	-webkit-transition: background 1s, box-shadow 1s;
+				transition: background 1s, box-shadow 1s;
+				cursor: pointer;
+				top: 15px;
+				position: relative;
+			}
+
+			div.linecont:hover > div.line {
+				background: rgb(255,85,85);
+				box-shadow: 0px 0px 25px 5px rgb(255, 150, 150);
+			}
+			
+			.loaderOverlay {
+				-webkit-border-radius: 6px;
+				border-radius: 6px;
+				background: rgba(238,238,238,0.7);
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				width: 100%;
+				height: 100%;
+				z-index: 2000;
+			}
+			
+			.loaderImg {
+				position: absolute;
+				top: -webkit-calc(50% - 16px);
+				left: -webkit-calc(50% - 16px);
+				top: calc(50% - 16px);
+				left: calc(50% - 16px);
+			}
+			
+			.itemCreator {
+				padding: 8px 0; 
+				width: 190px; 
+				top: 20px; 
+				left: 20px; 
+				position: relative;
+			}
+
+			.curveRange {
+				float: left;
+			}
+			
+			.navbar {
+				box-shadow: 0 0 68px 6px rgba(0, 0, 0, 0.5);
+			}
+			
+			div.navbar a.brand {
+				color: rgb(255, 255, 200);
+				text-shadow: 0px 0px 9px rgba(255, 255, 255, 1);
+				-webkit-transition: color 1s;
+				transition: color 1s;
+			}
+
+			div.navbar > div.navbar-inner > div.container > ul.nav > li.dropdown > a.dropdown-toggle,
+			div.navbar > div.navbar-inner > div.container > ul.nav > li > a {
+				color: rgb(200, 200, 200);
+				text-shadow: 0px 0px 9px rgba(255, 255, 255, 1);
+				-webkit-transition: color 1s;
+				transition: color 1s;
+			}
+			
+			div.navbar > div.navbar-inner > div.container > ul.nav > li.dropdown.open > a.dropdown-toggle,
+			div.navbar > div.navbar-inner > div.container > ul.nav > li.dropdown:hover > a.dropdown-toggle,
+			div.navbar > div.navbar-inner > div.container > ul.nav > li:hover > a {
+				color: rgb(255, 255, 255);
+			}
+			
+			div.navbar > div.navbar-inner > div.container > ul.nav > li.dropdown > a.dropdown-toggle > b {
+				-webkit-transition: all 1s;
+				transition: all 1s;
+			}
+			
+			body {
+				padding-top: 40px;
+		    	background-image: url(img/grid-18px-masked.png);
+				background-repeat: repeat;
+				font-family: 'Love Ya Like A Sister', cursive;
+		    }
+		    
+		    p, select {
+		    	font-family: 'Love Ya Like A Sister', cursive;
+		    }
+		    
+		    select {
+		    	width: 100%;
+		    }
+
+		    a[rel=tooltip] {
+		    	color: rgb(51, 51, 51);
+		    }
+
+		    a[rel="tooltip"]:hover {
+		    	text-decoration: none;
+		    }
+		    
+		    canvas {
+		    	-webkit-border-radius: 6px;
+				border-radius: 6px;
+			}
+		</style> 
+	</head>
+	
+	<body>
+		<div class="navbar navbar-fixed-top">
+	      <div class="navbar-inner">
+	        <div class="container-fluid">
+          	  <a class="brand" href="#">WebAudioToy</a>
+				<ul class="nav pull-right">
+				  <li>
+				  	<a href="#" id="shareBtn" rel="tooltip" title="Creates a unique url you can share with others to show what you created with this toy">Share</a>
+				  </li>
+				  <li>
+				  	<a data-toggle="modal" href="#loadBox" rel="tooltip" title="Loads a previously saved creation from local storage">Load</a>
+				  </li>
+				  <li>
+				  	<a data-toggle="modal" href="#saveBox" rel="tooltip" title="Saves your creation to local storage">Save</a>
+				  </li>
+				  <li>
+				  	<a data-toggle="modal" href="#aboutBox">About</a>
+				  </li>
+			    </ul>
+		      </div>
+		    </div>
+		 </div>
+		 <div style="position: absolute; top: 0%; left: 25%; z-index: -1; opacity:0.03; width: 50%;">
+       		<object data="img/Speaker_Icon.svg" type="image/svg+xml"></object>
+       	 </div>
+       	 <div style="position: fixed; bottom: 20px; left: 20px;">
+	   	 	<iframe src="//www.facebook.com/plugins/like.php?href=http%3A%2F%2Fuglyhack.appspot.com%2Fwebaudiotoy%2F&amp;send=false&amp;layout=button_count&amp;width=450&amp;show_faces=false&amp;action=like&amp;colorscheme=light&amp;font=trebuchet+ms&amp;height=21&amp;appId=222442451114068" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:450px; height:21px;" allowTransparency="true"></iframe>
+	   	 	<br/>
+     	 	<a href="http://twitter.com/share" class="twitter-share-button" data-url="http://uglyhack.appspot.com/webaudiotoy/" data-count="horizontal" data-via="DanielPettersso">Tweet</a><script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+     	 	<br/>
+		  	<g:plusone></g:plusone>
+		 </div>
+		 <div style="position: fixed; bottom: 20px; right: 20px;">
+		 	<a href="http://www.chromeexperiments.com/detail/webaudiotoy/"><img src="../resources/badge-black_white.png" alt="See my Experiment on ChromeExperiments.com" /></a>
+		 </div>
+		 
+		 <div class="well itemCreator">
+	        <ul class="nav nav-list nodeslist">
+	  			<li class="nav-header">
+	  				Audio sources
+	  			</li>
+	  			<li>
+	    			<a href="#" data-nodetype="son">
+	    				<i class="icon-file"></i>
+	    				File
+	    			</a>
+	    			<a href="#" data-nodetype="on">
+	    				<i class="icon-chevron-up"></i>
+		    			Oscillator
+	    			</a>
+	    			<a href="#" data-nodetype="mn">
+	    				<i class="icon-user"></i>
+		    			Microphone
+	    			</a>
+	    			<a href="#" data-nodetype="tts">
+	    				<i class="icon-font"></i>
+		    			Text To Speech
+	    			</a>
+	    			<a href="#" data-nodetype="pn">
+	    				<i class="icon-play"></i>
+		    			Piano
+	    			</a>
+	    			
+	    		</li>
+	  			<li class="nav-header">
+	  				Simple filters
+	  			</li>
+	  			<li>
+	    			<a href="#" data-nodetype="deln">
+	    				<i class="icon-pause"></i>
+	    				Delay
+	    			</a>
+	    		</li>
+	    		<li>
+	    			<a href="#" data-nodetype="gn">
+	    				<i class="icon-plus"></i>
+	    				Gain
+	    			</a>
+	    		</li>
+	    		<li>
+	    			<a href="#" data-nodetype="bfn">
+	    				<i class="icon-signal"></i>
+	    				Pass
+	    			</a>
+	    		</li>
+	    		<li>
+	    			<a href="#" data-nodetype="nn">
+	    				<i class="icon-question-sign"></i>
+	    				Noise
+	    			</a>
+	    		</li>
+	    		<li>
+	    			<a href="#" data-nodetype="vn">
+	    				<i class="icon-leaf"></i>
+	    				Vibrato
+	    			</a>
+	    		</li>
+	    		<li>
+	    			<a href="#" data-nodetype="ptn">
+	    				<i class="icon-resize-full"></i>
+	    				Pitch
+	    			</a>
+	    		</li>
+	    		<li class="nav-header">
+	  				Advanced filters
+	  			</li>
+	  			<li>
+	    			<a href="#" data-nodetype="cn">
+	    				<i class="icon-random"></i>
+	    				Convolver
+	    			</a>
+	    		</li>
+	    		<li>
+	    			<a href="#" data-nodetype="dcn">
+	    				<i class="icon-bullhorn"></i>
+	    				Dynamic Compression
+	    			</a>
+	    		</li>
+	    		<li>
+	    			<a href="#" data-nodetype="wsn">
+	    				<i class="icon-tasks"></i>
+	    				Wave Shaper
+	    			</a>
+	    		</li>
+	    		<li>
+	    			<a href="#" data-nodetype="scn">
+	    				<i class="icon-filter"></i>
+	    				Javascript
+	    			</a>
+	    		</li>
+	    		<li class="nav-header">
+	    			Other
+	    		</li>
+	    		<li>
+	    			<a href="#" data-nodetype="an">
+	    				<i class="icon-eye-open"></i>
+	    				Analyzer
+	    			</a>
+	    		</li>
+	  		</ul>
+	  	</div>
+		 <div class="container">
+	    	<div id="aboutBox" class="modal hide fade">
+	            <div class="modal-header">
+	              	<button class="close" data-dismiss="modal">&times;</button>
+	              	<h3>About</h3>
+	            </div>
+	            <div class="modal-body">
+	               	<div style="position: absolute; top: 5%; left: 24%; z-index: -1; opacity:0.03; width: 50%;">
+			       		<object data="img/Speaker_Icon.svg" type="image/svg+xml"></object>
+			       	</div>
+	            
+		            <h4>Made by</h4>
+		            <p>Daniel Pettersson <a href="https://twitter.com/#!/DanielPettersso">@DanielPettersso</a> <a href="mailto:daniel.g.pettersson@gmail.com">daniel.g.pettersson@gmail.com</a></p>
+		
+		            <h4>With stuff from</h4>
+		            <p>
+		            	John Resig - <a href="http://ejohn.org/blog/simple-javascript-inheritance/">Simple JavaScript Inheritance</a><br/>
+		            	Monkey & Crow - <a href="http://monkeyandcrow.com/blog/drawing_lines_with_css3/">Drawing Lines with CSS3</a><br/>
+		            	Twitter - <a href="http://twitter.github.com/bootstrap/">Bootstrap</a><br/>
+		            	jQuery Foundation - <a href="http://jquery.org">jQuery and jQuery UI</a><br/>
+		            	Google - <a href="http://www.google.com/webfonts">Webfonts</a><br/>
+		            	Kripken (Alon Zakai) - <a href="https://github.com/kripken/speak.js">Speak.js</a><br/>
+		            	g200kg - <a href="https://github.com/g200kg/WAAPISim">WAAPISim</a>
+		            </p>
+		            <h4>Code at</h4>
+		            <p>
+		            	<a href="http://code.google.com/p/uglyhack/">Google code</a>
+		            </p>
+	            </div>
+	            <div class="modal-footer">
+	            	<a href="#" class="btn" data-dismiss="modal" >Close</a>
+	            </div>
+          	</div>
+          	<div id="noWebAudioBox" class="modal hide fade">
+	            <div class="modal-header">
+	              	<button class="close" data-dismiss="modal">&times;</button>
+	              	<h3>Ooops!</h3>
+	            </div>
+	            <div class="modal-body">
+	               	<div style="position: absolute; top: 20%; left: 40%; z-index: -1; opacity:0.02; width: 20%;">
+			       		<object data="img/Speaker_Icon.svg" type="image/svg+xml"></object>
+			       	</div>
+	                <h4>No Web Audio API</h4>
+		            <p>Seems your browser has no support for Web Audio. Try with a recent Chrome, or maybe Safari or some other Webkit based browser.</p>
+	            </div>
+	            <div class="modal-footer">
+	            	<a href="#" class="btn" data-dismiss="modal" >Close</a>
+	            </div>
+          	</div>
+          	<div id="firstTimeBox" class="modal hide fade">
+	            <div class="modal-header">
+	              	<button class="close" data-dismiss="modal">&times;</button>
+	              	<h3>What is this?</h3>
+	            </div>
+	            <div class="modal-body">
+	            	<div style="position: absolute; top: 3%; left: 10%; z-index: -1; opacity:0.03; width: 72%;">
+			       		<object data="img/Speaker_Icon.svg" type="image/svg+xml"></object>
+			       	</div>
+		            <h4>Web Audio API</h4>
+		            <p>This is kind of a toy or explorer thingy which lets you play with Web Audio API. It can play, record and generate audio and apply different kinds of effects.</p>
+		            <h4>How do I use it?</h4>
+		            <p>To get you started, a file node and output is created right away. Just drag and drop a Audio file (mp3, ogg or whatever) from your computer to the file node.</p>
+		            <p>Then to get sound out of the speaker, drag the right handle of the file node to the left handle of the output. And voila, there should be sounds coming out of your speakers. </p>
+		            <p>But the fun starts when you connect together a combination of nodes. So you can really make your music sound bad or just create some strange sounds.</p>
+		        	<h4>Save, Load &amp; Share</h4>
+		            <p>When you have created some cool effect. Use the Save, Load &amp; Share buttons to save it locally or share it with the world.</p>
+		            <label class="checkbox">
+						<input type="checkbox" checked="true" id="firstTimeChk"> Don't show this again
+					</label>
+	            </div>
+	            <div class="modal-footer">
+	            	<a href="#" class="btn" data-dismiss="modal" >Close</a>
+	            </div>
+          	</div>
+          	<div id="saveBox" class="modal hide fade">
+	            <div class="modal-header">
+	              	<button class="close" data-dismiss="modal">&times;</button>
+	              	<h3>Save</h3>
+	            </div>
+	            <div class="modal-body">
+		            <h4>Name of your save:</h4>
+		            <input class="xlarge" id="saveTxt" type="text">
+	            </div>
+	            <div class="modal-footer">
+	            	<a href="#" class="btn" data-dismiss="modal" >Cancel</a>
+	            	<a href="#" class="btn btn-primary disabled" id="saveOkBtn">OK</a>
+	            </div>
+          	</div>
+          	<div id="loadBox" class="modal hide fade">
+	            <div class="modal-header">
+	              	<button class="close" data-dismiss="modal">&times;</button>
+	              	<h3>Load</h3>
+	            </div>
+	            <div class="modal-body">
+		            <h4>Select what to load:</h4>
+		            <select id="loadSelect"></select>
+		            <p id="loadNothing">You have not saved anything yet...</p>
+	            </div>
+	            <div class="modal-footer">
+	            	<a href="#" class="btn" data-dismiss="modal" >Cancel</a>
+	            	<a href="#" class="btn btn-primary" id="loadOkBtn">OK</a>
+	            </div>
+          	</div>
+          	<div id="shareBox" class="modal hide fade">
+	            <div class="modal-header">
+	              	<button class="close" data-dismiss="modal">&times;</button>
+	              	<h3>Share you creation</h3>
+	            </div>
+	            <div class="modal-body">
+		            <p>Here is a Url you can use to share what you have created:</p>
+		            <a href="" id="shareLink" style="word-wrap: break-word;"></a>
+	            </div>
+	            <div class="modal-footer">
+	            	<a href="#" class="btn" data-dismiss="modal" >OK</a>
+	            </div>
+          	</div>
+          	<div id="pianoInfoBox" class="modal hide fade">
+	            <div class="modal-header">
+	              	<button class="close" data-dismiss="modal">&times;</button>
+	              	<h3>Piano</h3>
+	            </div>
+	            <div class="modal-body">
+		            <h4>You have added a Piano Node</h4>
+		            <p>You can play it with your keybord using the ZSXDCVGBHNJMQ2W3ER5T6Y7U keys.</p>
+		            <label class="checkbox">
+						<input type="checkbox" checked="true" id="pianoInfoChk"> Don't show this again
+					</label>
+	            </div>
+	            <div class="modal-footer">
+	            	<a href="#" class="btn" data-dismiss="modal" >OK</a>
+	            </div>
+          	</div>
+        </div>
+        
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" type="text/javascript"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js" type="text/javascript"></script>
+		<script src="js/jquery.ui.touch-punch.min.js" type="text/javascript"></script>
+		<script src="js/bootstrap.min.js" type="text/javascript"></script>
+		<script src="js/waapisim.js" type="text/javascript"></script>
+		 <script src="build/application.js" type="text/javascript"></script>
+		
+		<script type="text/javascript">
+		  var _gaq = _gaq || [];
+		  _gaq.push(['_setAccount', 'UA-24008188-1']);
+		  _gaq.push(['_trackPageview']);
+
+		  (function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		  })();
+		</script>
+		<script type="text/javascript">
+		  (function() {
+		    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+		    po.src = 'https://apis.google.com/js/plusone.js';
+		    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+		  })();
+		</script>
+        
+	</body>
+</html>

@@ -1,0 +1,321 @@
+<html>
+	<head>
+		<style type="text/css">
+			body {
+				border:none;
+				color:#fff;
+				overflow: hidden;
+				background-image:url('/img/gray_jean.png');
+				background-repeat:repeat;
+				padding: 0px;
+				margin: 0px;
+			}
+
+			.info {
+				position: fixed;
+				background: black;
+				-webkit-box-shadow: 0px 0px 10px rgba(50, 50, 50, 0.75);
+				-moz-box-shadow:    0px 0px 10px rgba(50, 50, 50, 0.75);
+				box-shadow:         0px 0px 10px rgba(50, 50, 50, 0.75);
+			}
+			
+			#infoicon {
+				top: 5px;
+				right: 5px;
+				width:36px;
+				height: 31px;
+				text-align: center;
+				font-size: 25px;
+				cursor: pointer;
+				border-radius: 18px;
+				padding-top: 5px;
+				color: white;
+			}
+
+			#infobox {
+				top: 0px;
+				right: 0px;
+				padding: 15px;
+				display: none;
+				width: 225px;
+				border-bottom-left-radius: 15px;
+				color: #AAAAAA;
+			}
+
+			a {
+				color:white;
+			}  
+			
+		</style>
+		<link rel="stylesheet" href="/css/alertify.css" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+	</head>
+	<body>
+		<canvas id="canvas" width="900" height="500"></canvas>
+		<div id="infobox" class="info">
+			This is a multi user, multi touch, multi device block building toy. Try playing with it simultaneously on your tablet, phone and desktop by dragging the blocks around.<br/><br/>
+
+			Made by <a href="https://twitter.com/DanielPettersso">Daniel Pettersson</a><br/><br/>
+			Using Node.js, Express, Socket.io, Alertify.js and Box2d<br/><br/>
+			Hosted by Nodejitsu<br/><br/>
+			Code at <a href="http://code.google.com/p/uglyhack/source/browse/#svn%2Ftrunk%2Fnodebox">Google code</a><br/><br/>
+			<a href="http://twitter.com/share" class="twitter-share-button" data-url="http://box.jit.su" data-count="horizontal" data-via="DanielPettersso">Tweet</a><script type="text/javascript" src="https://platform.twitter.com/widgets.js"></script>
+		</div>	
+		<div id="infoicon" class="info">i</div>	
+	</body>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+	<script type="text/javascript" src="/js/alertify.min.js"></script>
+	<script>
+
+
+	(function() {
+
+		var vendors = ['ms', 'moz', 'webkit', 'o'];
+		for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+			window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+			window.cancelAnimationFrame = 
+			window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
+		}
+	}());
+
+
+	$(function() {
+
+		$('#infoicon').on('click', function() { 
+			$('#infobox').fadeIn('slow'); 
+			$('#infoicon').fadeOut('slow'); 
+		});
+		
+		var headID = document.getElementsByTagName("head")[0];         
+		var newScript = document.createElement('script');
+		newScript.type = 'text/javascript';
+		newScript.src = '/socket.io/socket.io.js';
+		newScript.onload = init;
+		headID.appendChild(newScript);
+
+		var drawData;
+		var jointsData;
+
+		var animateArrow = true;
+		var showMsg = true;
+		var sendMM = true;
+
+		function init() {
+			var socket = io.connect('http://' + window.location.hostname);
+			var canvas = document.getElementById('canvas');
+			var scale, scroll;
+			doResize();
+
+			var ctx = canvas.getContext("2d");
+			ctx.lineCap= 'round';
+
+			var pattern;
+			var image = new Image();
+			image.src = '/img/wood.png';
+			image.onload = function() {
+				pattern = ctx.createPattern(image, "repeat");
+			}
+
+			
+			var okToRequestAnimationFrame = true;
+
+			var scaleData = function(d) {
+				var ret = [];
+				for (var i = 0; i < d.length; i ++) {
+					ret.push({
+						x: d[i].x * scale,
+						y: (d[i].y * scale) - scroll,
+						r: d[i].r,
+						c: d[i].c,
+						w: d[i].w * scale,
+						h: d[i].h * scale
+					});
+				}
+				return ret;
+			};
+
+			socket.on('d', function (data) {
+				drawData = data;
+				doDraw();
+			});
+
+			socket.on('u', function (data) {
+				var d;
+				for (var i = 0; i < data.u.length; i ++) {
+					d = data.u[i].split('_');
+
+					drawData[d[3]].x = d[0];
+					drawData[d[3]].y = d[1];
+					drawData[d[3]].r = d[2];
+				}
+				jointsData = data.j;
+				if(okToRequestAnimationFrame) {
+					doDraw();
+				}
+			});
+
+			socket.on('s', function (data) {
+				if(showMsg) {
+					showMsg = false;
+					alertify.log(data, "", 1500);
+					setTimeout(function() { showMsg = true; }, 15000);
+				}
+			});
+
+			function doDraw() {
+				okToRequestAnimationFrame = false;
+				requestAnimationFrame(function() {
+					ctx.fillStyle = "rgba(40, 40, 40, 0.2)";
+					ctx.strokeStyle = 'rgba(20, 20, 20, 0.7)';
+					ctx.lineWidth = 2;
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					var data = scaleData(drawData);
+					drawShadows(data);
+					if(pattern) ctx.fillStyle = pattern
+					drawShapes(data);
+					ctx.strokeStyle = 'rgba(200, 0, 0, 0.3)';
+					ctx.lineWidth = 6;
+					if(jointsData) drawJoints();
+					okToRequestAnimationFrame = true;
+				});
+			}
+
+			function drawShadows(data) {
+				var ww, hh, d;
+				for (var i = 0; i < data.length; i ++) {
+
+					d = data[i];
+					ww = d.w/2;
+					hh = d.h/2;
+
+					ctx.save(); 
+					ctx.translate(d.x+ww+5,d.y+hh+5);
+					ctx.rotate(d.r);
+					ctx.fillRect(-ww,-hh,d.w,d.h);		
+					ctx.restore();				
+				}
+			}
+
+			function drawShapes(data) {
+				var ww, hh, d;
+				for (var i = 0; i < data.length; i ++) {
+
+					d = data[i];
+					ww = d.w/2;
+					hh = d.h/2;
+
+					ctx.save(); 
+					ctx.translate(d.x+ww,d.y+hh);
+					ctx.rotate(d.r);
+					ctx.fillRect(-ww,-hh,d.w,d.h);	
+					ctx.beginPath();
+					ctx.rect(-ww,-hh,d.w,d.h);		
+					ctx.stroke();
+					ctx.restore();				
+				}
+			}
+			
+			function drawJoints() {
+				var x1,x2,y1,y2,d;
+				for (var i = 0; i < jointsData.length; i ++) {
+					d = jointsData[i].split('_');
+
+					x1 = d[0] * scale;
+					y1 = (d[1] * scale) - scroll;
+					x2 = d[2] * scale;
+					y2 = (d[3] * scale) - scroll;
+					
+					ctx.arc(x1, y1, 10, 0 , 2 * Math.PI, false);
+					ctx.arc(x2, y2, 15, 0 , 2 * Math.PI, false);
+					
+					ctx.beginPath();
+					ctx.moveTo(x1,y1);
+					ctx.lineTo(x2,y2);
+					ctx.stroke();
+				}
+			}
+
+			canvas.addEventListener("mousedown", function(e) {
+				canvas.addEventListener("mousemove", handleMouseMove, true);
+				socket.emit('md', {i: 0, x: (e.clientX/scale).toFixed(1), y: ((e.clientY+scroll)/scale).toFixed(1)});
+				$('#infobox').fadeOut('slow'); 
+				$('#infoicon').fadeIn('slow'); 
+				e.preventDefault();
+			}, true);
+
+			canvas.addEventListener("mouseup", function(e) {
+				canvas.removeEventListener("mousemove", handleMouseMove, true);
+				socket.emit('mu', {i: 0});
+				e.preventDefault();
+			}, true);
+
+			function handleMouseMove(e) {
+				if(sendMM) {
+					sendMM = false;
+					socket.emit('mm', {i: 0, x: (e.clientX/scale).toFixed(1), y: ((e.clientY+scroll)/scale).toFixed(1)});
+					setTimeout(function() { sendMM = true; }, 75);
+				}
+				e.preventDefault();
+			};
+
+			canvas.addEventListener("touchstart", function(e) {
+				for(var q = 0; q < e.changedTouches.length; q++) {
+					var touch = e.changedTouches[q];
+					socket.emit('md', {i: touch.identifier, x: (touch.clientX/scale).toFixed(1), y: ((touch.clientY+scroll)/scale).toFixed(1)});
+				}
+				$('#infobox').fadeOut('slow'); 
+				$('#infoicon').fadeIn('slow'); 
+				e.preventDefault();
+			}, false);
+
+			canvas.addEventListener("touchend", function(e) {
+				for(var q = 0; q < e.changedTouches.length; q++) {
+					var touch = e.changedTouches[q];
+					socket.emit('mu', {i: touch.identifier});
+				}
+				e.preventDefault();
+			}, false);
+
+			canvas.addEventListener("touchmove", function(e) {
+				if(sendMM) {
+					sendMM = false;
+					for(var q = 0; q < e.changedTouches.length; q++) {
+						var touch = e.changedTouches[q];
+						socket.emit('mm', {i: touch.identifier, x: (touch.clientX/scale).toFixed(1), y: ((touch.clientY+scroll)/scale).toFixed(1)});
+					}
+					setTimeout(function() { sendMM = true; }, 75);
+				} 
+				e.preventDefault();
+			}, false);
+
+			window.addEventListener('resize', doResize, false);
+			window.addEventListener('orientationchange', doResize, false);
+
+			function doResize() {
+				canvas.width  = window.innerWidth;
+		  		canvas.height = window.innerHeight;
+
+				scale = window.innerWidth / 1000.0;
+				scroll = (3000 * scale) - canvas.height;
+				if(drawData) {
+					doDraw();
+				}
+			}
+		}
+	});
+	</script>
+	<script type="text/javascript">
+
+	  var _gaq = _gaq || [];
+	  _gaq.push(['_setAccount', 'UA-37087118-1']);
+	  _gaq.push(['_trackPageview']);
+
+	  (function() {
+	    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	  })();
+
+	</script>
+</html>

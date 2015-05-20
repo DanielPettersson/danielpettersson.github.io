@@ -1,0 +1,16 @@
+{
+  "name": "nodebox",
+  "version": "0.2.3",
+  "dependencies": {
+    "socket.io": "0.9.x",
+    "express": "3.x"
+  },
+  "engines": {
+    "node": "0.8.x",
+    "npm": "1.1.x"
+  },
+  "subdomain": "box",
+  "scripts": {
+    "start": "box2dserver.js"
+  }
+}

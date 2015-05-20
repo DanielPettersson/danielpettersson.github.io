@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>InfiniZoom</title>
+    <meta name="description" content="css infinite zooming">
+    <meta name="author" content="Daniel Pettersson">
+    <style>
+        body {
+          margin: 0;
+        }
+
+        #border {
+          width: 768px;
+          height: 768px;
+          left: 50%;
+          top: 50%;
+          margin: -368px;
+          position: absolute;
+          
+          border-radius: 384px;
+          box-shadow: 0px 0px 50px rgba(0, 0, 0, 1);
+        }
+
+        #viewport {
+          width: 768px;
+          height: 768px;
+          position: absolute;
+          overflow: hidden;
+          border-radius: 384px;
+          mask-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA5JREFUeNpiYGBgAAgwAAAEAAGbA+oJAAAAAElFTkSuQmCC);
+        }
+
+        .img {
+          display: block;
+          position: absolute;
+          animation-duration: 3s;
+          animation-iteration-count: infinite;
+          animation-timing-function: cubic-bezier(0.140, 0.345, 0.640, 0.840);
+          background: url('zoom.png');
+          width: 1024px;
+          height: 768px;
+          left: -129px;
+        }
+
+        #img-big {
+         animation-name: bigZoom;
+        }
+
+        #img-small {
+          animation-name: smallZoom;
+        }
+
+        @keyframes bigZoom {
+          0% { 
+            transform: perspective(200px) translate3d( 0, 0, 0); 
+            -webkit-filter: hue-rotate(0deg);
+          }
+          100% { 
+            transform: perspective(200px) translate3d( 3px, -138px, 136px); 
+            -webkit-filter: hue-rotate(360deg);
+          }
+        }
+
+        @keyframes smallZoom {
+          0% {
+            transform: perspective(200px) translate3d( -11px, 423px, -412px);
+            opacity: 0;
+          }  
+          100% {
+            transform: perspective(200px) translate3d( 0, 0, 0);
+            opacity: 1;
+          }
+          
+        }
+
+    </style>
+    <script type="text/javascript" src="prefixfree.min.js"></script>
+  </head>
+  <body>
+    <div id="border">
+      <div id="viewport">
+        <div class="img" id="img-big"></div>
+        <div class="img" id="img-small"></div>
+      </div>
+    </div>
+  </body>
+</html>
+
