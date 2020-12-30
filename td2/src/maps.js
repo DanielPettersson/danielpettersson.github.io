@@ -16,11 +16,7 @@ TD.Map = TD.Displayable.extend({
 
     this.sprite.setInteractive(true);
     this.sprite.click = function(data) {
-      if (Math.random() < 0.5) {
-          new TD.BombTower(that.sprite, {x: data.global.x, y: data.global.y});
-      } else {
-          new TD.AxeTower(that.sprite, {x: data.global.x, y: data.global.y});
-      }
+      new TD.BombTower(that.sprite, {x: data.global.x, y: data.global.y});
     };
   },
   zIndex: function() {
@@ -67,6 +63,9 @@ TD.Map1 = TD.Map.extend({
         {'x': 1050, 'y': 157}
       ]}
     ]);
+    new TD.BombTower(this.sprite, {x: 111, y: 150});
+    new TD.BombTower(this.sprite, {x: 310, y: 450});
+    new TD.BombTower(this.sprite, {x: 580, y: 400});
   }
 });
 
@@ -85,41 +84,8 @@ TD.Map2 = TD.Map.extend({
         {'x': 740, 'y': 576}, {'x': 855, 'y': 652}, {'x': 909, 'y': 785}
       ]}
     ]);
-  }
-});
-
-TD.Map3 = TD.Map.extend({
-  init: function(){
-    this._super('img/maps/3.jpg', [
-      {path: [
-        {'x': 515, 'y': -50}, {'x': 495, 'y': 270}, {'x': 320, 'y': 322},
-        {'x': 187, 'y': 240}, {'x': 112, 'y': 376}, {'x': 178, 'y': 531},
-        {'x': 398, 'y': 606}, {'x': 663, 'y': 558}, {'x': 864, 'y': 626},
-        {'x': 897, 'y': 785}
-      ]},
-      {path: [
-        {'x': 546, 'y': -50}, {'x': 545, 'y': 130}, {'x': 663, 'y': 215},
-        {'x': 819, 'y': 277}, {'x': 828, 'y': 421}, {'x': 701, 'y': 525},
-        {'x': 740, 'y': 576}, {'x': 855, 'y': 652}, {'x': 909, 'y': 785}
-      ]}
-    ]);
-  }
-});
-
-TD.Map4 = TD.Map.extend({
-  init: function(){
-    this._super('img/maps/4.jpg', [
-      {path: [
-        {'x': 515, 'y': -50}, {'x': 495, 'y': 270}, {'x': 320, 'y': 322},
-        {'x': 187, 'y': 240}, {'x': 112, 'y': 376}, {'x': 178, 'y': 531},
-        {'x': 398, 'y': 606}, {'x': 663, 'y': 558}, {'x': 864, 'y': 626},
-        {'x': 897, 'y': 785}
-      ]},
-      {path: [
-        {'x': 546, 'y': -50}, {'x': 545, 'y': 130}, {'x': 663, 'y': 215},
-        {'x': 819, 'y': 277}, {'x': 828, 'y': 421}, {'x': 701, 'y': 525},
-        {'x': 740, 'y': 576}, {'x': 855, 'y': 652}, {'x': 909, 'y': 785}
-      ]}
-    ]);
+    new TD.BombTower(this.sprite, {x: 660, y: 120});
+    new TD.BombTower(this.sprite, {x: 220, y: 400});
+    new TD.BombTower(this.sprite, {x: 600, y: 500});
   }
 });

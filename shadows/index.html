@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Shadows</title>
+		<style>
+			body { margin: 0; }
+			canvas { display: block; }
+		</style>
+    </head>
+    
+	<body>
+
+        <script id="fragmentShader" type="x-shader/x-fragment">
+            
+            #include <common>
+
+            uniform float iWindowSize;
+            uniform float iTime;
+            uniform vec2 iPos;
+
+            const int MAX_STEPS = 50;
+            const float RAY_PRECISION = 0.0015;
+
+            const float SHADOW_SHARPNESS = 16.;
+            const float SHADOW_EXTRA_SHARPNESS_DISTANCE = .1;
+            const float SHADOW_EXTRA_SHARPNESS_MULTIPLIER = 50.;
+
+            const float LIGHT_RADIUS = 1.;
+            const float LIGHT_OCCLUSION_DISTANCE = .15;
+
+            const vec4 TEXT_FILL = vec4(.8, .8, .8, 1.);
+            const vec4 TEXT_BORDER = vec4(0., 0., 0., 1.);
+            const float TEXT_BORDER_WIDTH = 5.;
+            
+            float sdCircle(in vec2 pos, in vec2 circlePos, in float circleRadius) {
+                return max(length(pos - circlePos) - circleRadius, 0.);
+            }
+
+            float sdRoundedX(in vec2 p, in float w, in float r) {
+                p = abs(p);
+                return length(p-min(p.x+p.y,w)*0.5) - r;
+            }
+
+            float sdStar5(in vec2 p, in float r, in float rf) {
+                const vec2 k1 = vec2(0.809016994375, -0.587785252292);
+                const vec2 k2 = vec2(-k1.x,k1.y);
+                p.x = abs(p.x);
+                p -= 2.0*max(dot(k1,p),0.0)*k1;
+                p -= 2.0*max(dot(k2,p),0.0)*k2;
+                p.x = abs(p.x);
+                p.y -= r;
+                vec2 ba = rf*vec2(-k1.y,k1.x) - vec2(0,1);
+                float h = clamp( dot(p,ba)/dot(ba,ba), 0.0, r );
+                return length(p-ba*h) * sign(p.y*ba.x-p.x*ba.y);
+            }
+
+            float sdUnevenCapsule( vec2 p, float r1, float r2, float h ) {
+                p.x = abs(p.x);
+                float b = (r1-r2)/h;
+                float a = sqrt(1.0-b*b);
+                float k = dot(p,vec2(-b,a));
+                if( k < 0.0 ) return length(p) - r1;
+                if( k > a*h ) return length(p-vec2(0.0,h)) - r2;
+                return dot(p, vec2(a,b) ) - r1;
+            }
+
+            float queryDistanceFields(in vec2 pos) {
+
+                float dst = sdCircle(pos, vec2(.25, .7), .03);
+                dst = min(dst, sdCircle(pos, vec2(.7, .25), .05));
+                dst = min(dst, sdRoundedX(pos - vec2(.5, .5), .2, .01));
+                dst = min(dst, sdStar5(pos - vec2(.85, .75), .1, .3));
+                dst = min(dst, sdUnevenCapsule(pos - vec2(.25, .15), .03, .02, .1));
+
+                return dst;
+            }
+
+            vec3 doLighting(in vec2 uv, in vec2 lightPos, in vec3 lightColor) {
+
+                float rayLength = 0.;
+                vec2 rayDirection = normalize(lightPos - uv);
+                float distanceToLight = length(lightPos - uv);
+                float shadowFactor = 1.;
+                float lightFactor = 1. - pow(clamp(distanceToLight / LIGHT_RADIUS, 0., 1.), 2.);
+
+                float lightDistanceToObject = queryDistanceFields(lightPos);
+                float shadowSharpnessMultiplier = 1. + max(SHADOW_EXTRA_SHARPNESS_DISTANCE - lightDistanceToObject, 0.) * SHADOW_EXTRA_SHARPNESS_MULTIPLIER;
+
+                float previousDistanceToObject = 1e20;
+
+                for(int i = 0; i <= MAX_STEPS; i++) {
+
+                    if (rayLength > distanceToLight) break; 
+
+                    float distanceToObject = queryDistanceFields(uv + rayDirection * rayLength);
+                    
+                    if (distanceToObject < RAY_PRECISION) {
+                        return vec3(0., 0., 0.);
+                    }
+
+                    float y = distanceToObject * distanceToObject / (2. * previousDistanceToObject);
+                    float d = sqrt(distanceToObject * distanceToObject - y * y);
+                    shadowFactor = min(shadowFactor, shadowSharpnessMultiplier * SHADOW_SHARPNESS * d / max(0., rayLength - y));
+
+                    previousDistanceToObject = distanceToObject;
+                    rayLength += distanceToObject;
+                }
+                
+                float c = lightFactor * shadowFactor;
+                
+                if (lightDistanceToObject < LIGHT_OCCLUSION_DISTANCE) {
+                    c *= lightDistanceToObject / LIGHT_OCCLUSION_DISTANCE;
+                }
+
+                return lightColor * c;
+
+            }
+
+            void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+                
+                vec2 uv = fragCoord/iWindowSize;
+
+                float dst = queryDistanceFields(uv);
+
+                if (dst <= 0.) {
+                    fragColor = TEXT_FILL;
+                    return; 
+                } else if (dst < RAY_PRECISION * TEXT_BORDER_WIDTH) {
+                    fragColor = TEXT_BORDER;
+                    return; 
+                }
+
+                float s = sin(iTime) * .1;
+                float c = cos(iTime) * .1;
+                float s2 = sin(iTime * 2.) * .1;
+                float c2 = cos(iTime * 2.) * .1;
+
+                vec3 bgCol; 
+                if (step(.025, mod(dst, .03)) == 0.) {
+                    bgCol = vec3(.8, .8, .8);
+                } else {
+                    bgCol = vec3(.2, .2, .2);
+                }
+
+                vec3 lightColor = doLighting(uv, iPos, vec3(.4, .4, .4)) * bgCol;
+                lightColor = lightColor + doLighting(uv, vec2(.2 + s, .1 + c), vec3(.2, .6, .2)) * bgCol;
+                lightColor = lightColor + doLighting(uv, vec2(.8 + s2, .6 + c), vec3(.2, .2, .6)) * bgCol;
+                lightColor = lightColor + doLighting(uv, vec2(.15 + s, .9 + c2), vec3(.6, .2, .2)) * bgCol;
+
+                fragColor = vec4(lightColor, 1.);
+
+            }
+
+
+            void main() {
+                mainImage(gl_FragColor, gl_FragCoord.xy);
+            }
+
+        </script>
+
+		<script type="module">
+
+            import * as THREE from 'https://unpkg.com/three/build/three.module.js';
+          
+            const renderer = new THREE.WebGLRenderer();
+            renderer.autoClearColor = false;
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            var canvas = renderer.domElement;
+            document.body.appendChild(canvas);
+
+            const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
+            const scene = new THREE.Scene();
+
+            const uniforms = {
+                iTime: { value: 0 },
+                iWindowSize:  { value: windowSize() },
+                iPos: { value: new THREE.Vector2(.8, .4) },
+            };
+
+            var mouseDown = false;
+            var mouseX = -1;
+            var mouseY = -1;
+
+            scene.add(
+                new THREE.Mesh(
+                    new THREE.PlaneBufferGeometry(2, 2), 
+                    new THREE.ShaderMaterial({
+                        fragmentShader: document.getElementById('fragmentShader').textContent,
+                        uniforms,
+                    })
+                )
+            );
+
+            document.addEventListener('mousedown', function(e) {
+                mouseDown = true;
+
+                uniforms.iPos.value.x = e.clientX / windowSize();
+                uniforms.iPos.value.y = (window.innerHeight - e.clientY) / windowSize();
+
+            }, false);
+
+            document.addEventListener('mouseup', function(e) {
+                mouseDown = false;
+            }, false);
+
+            document.addEventListener('mousemove', function(e) {
+                if (mouseDown) {
+
+                    var dx = e.clientX - mouseX;
+                    var dy = e.clientY - mouseY;
+
+                    uniforms.iPos.value.x += dx / windowSize();
+                    uniforms.iPos.value.y -= dy / windowSize();
+                }
+
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+
+            }, false);
+
+            window.addEventListener( 'resize', function() {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                uniforms.iWindowSize.value = windowSize();
+            }, false );
+
+            function windowSize() {
+                return Math.min(window.innerWidth, window.innerHeight);
+            }
+
+            function render(time) {
+                time *= 0.001;  // convert to seconds
+                uniforms.iTime.value = time;
+
+                renderer.render(scene, camera);
+                requestAnimationFrame(render);
+            }
+
+
+            requestAnimationFrame(render);
+          
+          </script>
+
+	</body>
+</html>

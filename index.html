@@ -7,28 +7,23 @@
 	<title>Uglyhack</title>	
 	
 	<link href="uglyhack.css" rel="stylesheet" type="text/css"></link>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js" type="text/javascript"></script>
-	<script src="resources/RequestAnimationFrame.js" type="text/javascript"></script>
-	<script src="resources/Modernizr-css3d.min.js" type="text/javascript"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js" type="text/javascript"></script>
 	
 	<script type="text/javascript">
 
 		var expInfo = [
-			['Box Jitsu', 'http://box.jit.su', 'nodebox/logo.jpg'],
-			['SprichSprach', 'https://uglyhack.appspot.com/sprichensprachen/', 'sprichensprachen/logo.jpg'],
-			['Boingy', 'boingy/', 'boingy/logo.jpg'],
-			['WebAudioToy', 'webaudiotoy/', 'webaudiotoy/logo.jpg'],
-			['JFokus', 'jfokus/', 'jfokus/logo.jpg'],
-			['Systemet', 'systemet/', 'systemet/logo.jpg'],
-			['Hypnotron', 'hypnotron/', 'hypnotron/logo.jpg'],
-			['VideoFx', 'videofx/', 'videofx/logo.jpg'],
-			['CubeVideo', 'cubevideo/', 'cubevideo/logo.jpg'],
-			['Twittergraph', 'twittergraph/', 'twittergraph/logo.jpg'],
+			['3d Cube', '3d/', '3d/logo.jpg'],	
 			['Artistgraph', 'artistgraph/', 'artistgraph/logo.jpg'],
-			['3d Cube', '3d/', '3d/logo.jpg'],
+			['Boingy', 'boingy/', 'boingy/logo.jpg'],
 			['Chaosdraw', 'chaosdraw/', 'chaosdraw/logo.jpg'],
+			['CubeVideo', 'cubevideo/', 'cubevideo/logo.jpg'],
+			['Hypnotron', 'hypnotron/', 'hypnotron/logo.jpg'],
+			['InfiniZoom', 'infinizoom/', 'infinizoom/logo.jpg'],
+			['Shadows', 'shadows/', 'shadows/logo.jpg'],			
 			['Shake', 'shake/', 'shake/logo.jpg'],
-			['InfiniZoom', 'infinizoom/', 'infinizoom/logo.jpg']
+			['Tornen vinner', 'td2/', 'td2/logo.jpg'],
+			['WebAudioToy', 'webaudiotoy/', 'webaudiotoy/logo.jpg'],
+			['VideoFx', 'videofx/', 'videofx/logo.jpg']
 		];
 		
 		var experiments = [];
@@ -184,12 +179,7 @@
 			};
 
 			Experiment.prototype.move = function() {
-				var transStr = null;
-				if(Modernizr.csstransforms3d) {
-					transStr = 'translate3d(' + this.x + 'px, ' + this.y +'px, ' + this.idx*2 + 'px)  scale(' + this.scale + ') rotateY(' + this.dx*2.5 + 'deg) rotateX(' + this.dy*2.5 + 'deg)';
-				} else {
-					transStr = 'translate(' + this.x + 'px, ' + this.y +'px) scale(' + this.scale + ')';
-				}
+				var transStr = 'translate3d(' + this.x + 'px, ' + this.y +'px, ' + this.idx*2 + 'px)  scale(' + this.scale + ') rotateY(' + this.dx*2.5 + 'deg) rotateX(' + this.dy*2.5 + 'deg)';
 				
 				this.exp.css({
 					'z-index': this.scale > (1+expScaleFact*0.8) ? 150 : 100,
@@ -243,7 +233,7 @@
 			loadExp();
 		}
 
-		$(window).load(function () {
+		$(function() {
 			$(".content").mousemove(function(event) {
 			  	mousex = event.pageX;
 			  	mousey = event.pageY;

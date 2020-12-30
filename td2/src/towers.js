@@ -8,7 +8,7 @@ TD.Tower = TD.Displayable.extend({
 		this.bulletOffset = bulletOffset;
 		this.sprite.anchor.x = 0.5;
     	this.sprite.anchor.y = 1.0;
-    	this.lastshoottime = 0;
+    	this.lastshoottime = performance.now() + Math.random() * 1000;
     	TD.towers.push(this);
 	},
 	tryshoot: function() {
@@ -50,14 +50,8 @@ TD.Tower = TD.Displayable.extend({
 
 });
 
-TD.AxeTower = TD.Tower.extend({
-	init: function(parent, pos) {
-		this._super(parent, 'img/towers/tower1.png', pos, 'Axe', {x: 10, y: -100}, 1000, 200);
-	}
-});
-
 TD.BombTower = TD.Tower.extend({
 	init: function(parent, pos) {
-		this._super(parent, 'img/towers/tower2.png', pos, 'CannonBall', {x: 10, y: -100}, 1500, 150);
+		this._super(parent, 'img/towers/tower1.png', pos, 'CannonBall', {x: 10, y: -100}, 1500, 150);
 	}
 });

@@ -43,7 +43,14 @@ $(function() {
     TD.pixiStage = new PIXI.Stage;
     requestAnimationFrame(animate);
 
-    new TD.Menu();
+    if (Math.random() < 0.5) {
+        TD.map = new TD.Map1();
+    } else {
+        TD.map = new TD.Map2();
+    }
+    
+    
+    TD.mapAdded();
 
     function animate() {
 
