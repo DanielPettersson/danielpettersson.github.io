@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Fluids</title>
+		<style>
+			body { margin: 0; }
+			canvas { display: block; }
+		</style>
+    </head>
+    
+	<body>
+
+        <script id="outputShader" type="x-shader/x-fragment">
+            
+            #include <common>
+
+            uniform vec2 iWindowSize;
+            uniform float iTime;
+            uniform vec2 iPos;
+            uniform sampler2D iBufferTexture;
+            uniform sampler2D iFieldTexture;
+            
+            void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+                
+                vec2 uv = fragCoord / iWindowSize;
+                fragColor = texture(iBufferTexture, uv);
+            }
+
+
+            void main() {
+                mainImage(gl_FragColor, gl_FragCoord.xy);
+            }
+
+        </script>
+
+        <script id="bufferShader" type="x-shader/x-fragment">
+            
+            #include <common>
+
+            uniform vec2 iWindowSize;
+            uniform float iTime;
+            uniform vec2 iPos;
+            uniform sampler2D iImageTexture;
+            uniform sampler2D iBufferTexture;
+            uniform sampler2D iFieldTexture;
+            
+            void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+                
+                vec2 uv = fragCoord / iWindowSize;
+
+                if (iTime == 0.) {
+                
+                    fragColor = texture(iImageTexture, uv);
+
+                } else {
+
+                    vec2 mov = texture(iFieldTexture, uv).xy - vec2(0.5, 0.5);
+                    fragColor = texture(iBufferTexture, uv - mov);
+
+                }
+
+                
+            }
+
+
+            void main() {
+                mainImage(gl_FragColor, gl_FragCoord.xy);
+            }
+
+        </script>
+
+        <script id="fieldShader" type="x-shader/x-fragment">
+            
+            #include <common>
+
+            uniform vec2 iWindowSize;
+            uniform float iTime;
+            uniform vec2 iPos;
+            uniform float iRotateSpeed;
+            
+            void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+                
+                vec2 uv = fragCoord / iWindowSize;
+
+                float a = (atan(uv.x - .5, uv.y - .5) + PI) / (PI * 2.);
+                float dst = length(uv - vec2(.5, .5));
+                float a2 = mod(a + .25, 1.);
+
+                float x = 1. - abs(a - .5) * 2.;
+                float y = 1. - abs(a2 - .5) * 2.;
+
+                float xd = mix(0.5, x, dst);
+                float yd = mix(0.5, y, dst);
+
+                float m = .5 - iRotateSpeed * .5;
+
+                fragColor = vec4(
+                    m + xd * iRotateSpeed,
+                    m + yd * iRotateSpeed,
+                    0., 
+                    1.
+                );
+
+            }
+
+
+            void main() {
+                mainImage(gl_FragColor, gl_FragCoord.xy);
+            }
+
+        </script>
+
+		<script type="module">
+
+            import * as THREE from 'https://unpkg.com/three/build/three.module.js';
+          
+            async function main() {
+
+                const renderer = new THREE.WebGLRenderer();
+                renderer.autoClearColor = false;
+                renderer.setSize(window.innerWidth, window.innerHeight);
+
+                var canvas = renderer.domElement;
+                document.body.appendChild(canvas);
+
+                const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
+                const scene = new THREE.Scene();
+                const bufferScene = new THREE.Scene();
+                const fieldScene = new THREE.Scene();
+
+                const imageTexture = await loadTexture('image.jpg');
+
+                const renderTargetOptions = {
+                    type: THREE.FloatType,
+                    wrapS: THREE.RepeatWrapping, 
+                    wrapT: THREE.RepeatWrapping
+                }
+
+                const bufferRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetOptions);
+                const bufferRenderTarget2 = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetOptions);
+                var activeBufferRenderTarget = bufferRenderTarget;
+
+                const fieldRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetOptions);
+
+                const uniforms = {
+                    iTime: { value: 0 },
+                    iWindowSize:  { value: windowSize() },
+                    iImageTexture: { value: imageTexture },
+                    iBufferTexture: { value: bufferRenderTarget.texture },
+                    iFieldTexture: { value: fieldRenderTarget.texture },
+                    iRotateSpeed: { value: 0 }
+                };
+
+                var mouseDown = false;
+                var mouseX = -1;
+                var mouseY = -1;
+
+                scene.add(
+                    new THREE.Mesh(
+                        new THREE.PlaneBufferGeometry(2, 2), 
+                        new THREE.ShaderMaterial({
+                            fragmentShader: document.getElementById('outputShader').textContent,
+                            uniforms,
+                        })
+                    )
+                );
+
+                bufferScene.add(
+                    new THREE.Mesh(
+                        new THREE.PlaneBufferGeometry(2, 2), 
+                        new THREE.ShaderMaterial({
+                            fragmentShader: document.getElementById('bufferShader').textContent,
+                            uniforms,
+                        })
+                    )
+                );
+
+                fieldScene.add(
+                    new THREE.Mesh(
+                        new THREE.PlaneBufferGeometry(2, 2), 
+                        new THREE.ShaderMaterial({
+                            fragmentShader: document.getElementById('fieldShader').textContent,
+                            uniforms,
+                        })
+                    )
+                );
+
+                window.addEventListener( 'resize', function() {
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    uniforms.iWindowSize.value = windowSize();
+                }, false );
+
+                function windowSize() {
+                    return new THREE.Vector2(window.innerWidth, window.innerHeight);
+                }
+
+                function render(time) {
+
+                    renderer.setRenderTarget(fieldRenderTarget);
+                    renderer.render(fieldScene, camera);
+
+                    if (activeBufferRenderTarget === bufferRenderTarget) {
+                        renderer.setRenderTarget(bufferRenderTarget2);
+                        uniforms.iBufferTexture.value = bufferRenderTarget.texture;
+                        activeBufferRenderTarget = bufferRenderTarget2;
+                    } else {
+                        renderer.setRenderTarget(bufferRenderTarget);
+                        uniforms.iBufferTexture.value = bufferRenderTarget2.texture;
+                        activeBufferRenderTarget = bufferRenderTarget;
+                    }
+                    renderer.render(bufferScene, camera);                    
+
+                    renderer.setRenderTarget(null); 
+                    renderer.render(scene, camera);
+
+                    time *= 0.001;  // convert to seconds
+                    uniforms.iTime.value = time;
+
+                    uniforms.iRotateSpeed.value += 0.0003;
+
+                    requestAnimationFrame(render);
+                }
+
+
+                requestAnimationFrame(render);
+
+            }
+
+            function loadTexture(url) {
+                return new Promise((resolve, reject) => {
+                    new THREE.TextureLoader().load(
+                        url,
+                        texture => resolve(texture),
+                        undefined,
+                        err => reject(err)
+                    );
+                });
+            }
+
+            main().catch(e => { 
+                console.log(e); 
+            });
+          
+          </script>
+
+	</body>
+</html>
