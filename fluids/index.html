@@ -16,10 +16,7 @@
             #include <common>
 
             uniform vec2 iWindowSize;
-            uniform float iTime;
-            uniform vec2 iPos;
             uniform sampler2D iBufferTexture;
-            uniform sampler2D iFieldTexture;
             
             void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 
@@ -27,42 +24,26 @@
                 fragColor = texture(iBufferTexture, uv);
             }
 
-
             void main() {
                 mainImage(gl_FragColor, gl_FragCoord.xy);
             }
 
         </script>
 
-        <script id="bufferShader" type="x-shader/x-fragment">
+        <script id="advectionShader" type="x-shader/x-fragment">
             
             #include <common>
 
             uniform vec2 iWindowSize;
-            uniform float iTime;
-            uniform vec2 iPos;
-            uniform sampler2D iImageTexture;
-            uniform sampler2D iBufferTexture;
+            uniform sampler2D iInputTexture;
             uniform sampler2D iFieldTexture;
             
             void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 
                 vec2 uv = fragCoord / iWindowSize;
-
-                if (iTime == 0.) {
-                
-                    fragColor = texture(iImageTexture, uv);
-
-                } else {
-
-                    vec2 mov = texture(iFieldTexture, uv).xy - vec2(0.5, 0.5);
-                    fragColor = texture(iBufferTexture, uv - mov);
-
-                }
-
-                
+                vec2 mov = texture(iFieldTexture, uv).xy - vec2(0.5, 0.5);
+                fragColor = texture(iInputTexture, uv - mov);
             }
-
 
             void main() {
                 mainImage(gl_FragColor, gl_FragCoord.xy);
@@ -70,40 +51,56 @@
 
         </script>
 
-        <script id="fieldShader" type="x-shader/x-fragment">
+        <script id="divergenceShader" type="x-shader/x-fragment">
             
             #include <common>
 
             uniform vec2 iWindowSize;
-            uniform float iTime;
-            uniform vec2 iPos;
-            uniform float iRotateSpeed;
+            uniform sampler2D iFieldTexture;
             
             void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 
                 vec2 uv = fragCoord / iWindowSize;
-
-                float a = (atan(uv.x - .5, uv.y - .5) + PI) / (PI * 2.);
-                float dst = length(uv - vec2(.5, .5));
-                float a2 = mod(a + .25, 1.);
-
-                float x = 1. - abs(a - .5) * 2.;
-                float y = 1. - abs(a2 - .5) * 2.;
-
-                float xd = mix(0.5, x, dst);
-                float yd = mix(0.5, y, dst);
-
-                float m = .5 - iRotateSpeed * .5;
-
-                fragColor = vec4(
-                    m + xd * iRotateSpeed,
-                    m + yd * iRotateSpeed,
-                    0., 
-                    1.
-                );
-
+                fragColor = texture(iFieldTexture, uv);
             }
 
+            void main() {
+                mainImage(gl_FragColor, gl_FragCoord.xy);
+            }
+
+        </script>
+
+        <script id="externalForceShader" type="x-shader/x-fragment">
+            
+            #include <common>
+
+            uniform vec2 iWindowSize;
+            uniform sampler2D iFieldTexture;
+            
+            void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+                
+                vec2 uv = fragCoord / iWindowSize;
+                fragColor = texture(iFieldTexture, uv);
+            }
+
+            void main() {
+                mainImage(gl_FragColor, gl_FragCoord.xy);
+            }
+
+        </script>
+
+        <script id="bufferInitShader" type="x-shader/x-fragment">
+            
+            #include <common>
+
+            uniform vec2 iWindowSize;
+            #define S 5. // Scale
+            
+            void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+                
+                vec2 uv = floor(S * fragCoord.xy * vec2(iWindowSize.x / iWindowSize.y, 1) / iWindowSize.xy);
+                fragColor = vec4(vec3(mod(uv.x + uv.y, 2.)), 1);
+            }
 
             void main() {
                 mainImage(gl_FragColor, gl_FragCoord.xy);
@@ -115,132 +112,163 @@
 
             import * as THREE from 'https://unpkg.com/three/build/three.module.js';
           
-            async function main() {
+            const renderer = new THREE.WebGLRenderer();
+            renderer.autoClearColor = false;
+            renderer.setSize(window.innerWidth, window.innerHeight);
 
-                const renderer = new THREE.WebGLRenderer();
-                renderer.autoClearColor = false;
+            var canvas = renderer.domElement;
+            document.body.appendChild(canvas);
+
+            const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
+            const scene = new THREE.Scene();
+            const advectionScene = new THREE.Scene();
+            const divergenceScene = new THREE.Scene();
+            const externalForceScene = new THREE.Scene();
+            const bufferInitScene = new THREE.Scene();
+
+            const renderTargetOptions = {
+                type: THREE.FloatType,
+                wrapS: THREE.RepeatWrapping, 
+                wrapT: THREE.RepeatWrapping
+            }
+
+            var windowSize = getWindowSize();
+            var frameCount = 0;
+
+            const bufferRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetOptions);
+            const bufferRenderTarget2 = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetOptions);
+            var activeBufferRenderTarget = bufferRenderTarget;
+            
+            const fieldRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetOptions);
+            const fieldRenderTarget2 = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetOptions);
+            var activeFieldRenderTarget = fieldRenderTarget;
+
+            var activeFieldTextureValue = { value: activeFieldRenderTarget.texture };
+            var activeBufferTextureValue = { value: activeBufferRenderTarget.texture };
+            var activeAdvectionInputTextureValue = { value: activeBufferRenderTarget.texture };
+            var windowSizeValue = { value: windowSize };
+
+            scene.add(
+                new THREE.Mesh(
+                    new THREE.PlaneBufferGeometry(2, 2), 
+                    new THREE.ShaderMaterial({
+                        fragmentShader: document.getElementById('outputShader').textContent,
+                        uniforms: {
+                            iWindowSize:  windowSizeValue,
+                            iBufferTexture: activeBufferTextureValue
+                        }
+                    })
+                )
+            );
+
+            advectionScene.add(
+                new THREE.Mesh(
+                    new THREE.PlaneBufferGeometry(2, 2), 
+                    new THREE.ShaderMaterial({
+                        fragmentShader: document.getElementById('advectionShader').textContent,
+                        uniforms: {
+                            iWindowSize:  windowSizeValue,
+                            iInputTexture: activeAdvectionInputTextureValue,
+                            iFieldTexture: activeFieldTextureValue
+                        },
+                    })
+                )
+            );
+
+            divergenceScene.add(
+                new THREE.Mesh(
+                    new THREE.PlaneBufferGeometry(2, 2), 
+                    new THREE.ShaderMaterial({
+                        fragmentShader: document.getElementById('divergenceShader').textContent,
+                        uniforms: {
+                            iWindowSize:  windowSizeValue,
+                            iFieldTexture: activeFieldTextureValue
+                        },
+                    })
+                )
+            );
+
+            externalForceScene.add(
+                new THREE.Mesh(
+                    new THREE.PlaneBufferGeometry(2, 2), 
+                    new THREE.ShaderMaterial({
+                        fragmentShader: document.getElementById('externalForceShader').textContent,
+                        uniforms: {
+                            iWindowSize:  windowSizeValue,
+                            iFieldTexture: activeFieldTextureValue
+                        },
+                    })
+                )
+            );
+
+            bufferInitScene.add(
+                new THREE.Mesh(
+                    new THREE.PlaneBufferGeometry(2, 2), 
+                    new THREE.ShaderMaterial({
+                        fragmentShader: document.getElementById('bufferInitShader').textContent,
+                        uniforms: {
+                            iWindowSize:  windowSizeValue
+                        },
+                    })
+                )
+            );
+
+            window.addEventListener( 'resize', function() {
                 renderer.setSize(window.innerWidth, window.innerHeight);
+                windowSize = getWindowSize();
+            }, false );
 
-                var canvas = renderer.domElement;
-                document.body.appendChild(canvas);
+            function getWindowSize() {
+                return new THREE.Vector2(window.innerWidth, window.innerHeight);
+            }
 
-                const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
-                const scene = new THREE.Scene();
-                const bufferScene = new THREE.Scene();
-                const fieldScene = new THREE.Scene();
+            function render(time) {
 
-                const imageTexture = await loadTexture('image.jpg');
-
-                const renderTargetOptions = {
-                    type: THREE.FloatType,
-                    wrapS: THREE.RepeatWrapping, 
-                    wrapT: THREE.RepeatWrapping
-                }
-
-                const bufferRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetOptions);
-                const bufferRenderTarget2 = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetOptions);
-                var activeBufferRenderTarget = bufferRenderTarget;
-
-                const fieldRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetOptions);
-
-                const uniforms = {
-                    iTime: { value: 0 },
-                    iWindowSize:  { value: windowSize() },
-                    iImageTexture: { value: imageTexture },
-                    iBufferTexture: { value: bufferRenderTarget.texture },
-                    iFieldTexture: { value: fieldRenderTarget.texture },
-                    iRotateSpeed: { value: 0 }
-                };
-
-                var mouseDown = false;
-                var mouseX = -1;
-                var mouseY = -1;
-
-                scene.add(
-                    new THREE.Mesh(
-                        new THREE.PlaneBufferGeometry(2, 2), 
-                        new THREE.ShaderMaterial({
-                            fragmentShader: document.getElementById('outputShader').textContent,
-                            uniforms,
-                        })
-                    )
-                );
-
-                bufferScene.add(
-                    new THREE.Mesh(
-                        new THREE.PlaneBufferGeometry(2, 2), 
-                        new THREE.ShaderMaterial({
-                            fragmentShader: document.getElementById('bufferShader').textContent,
-                            uniforms,
-                        })
-                    )
-                );
-
-                fieldScene.add(
-                    new THREE.Mesh(
-                        new THREE.PlaneBufferGeometry(2, 2), 
-                        new THREE.ShaderMaterial({
-                            fragmentShader: document.getElementById('fieldShader').textContent,
-                            uniforms,
-                        })
-                    )
-                );
-
-                window.addEventListener( 'resize', function() {
-                    renderer.setSize(window.innerWidth, window.innerHeight);
-                    uniforms.iWindowSize.value = windowSize();
-                }, false );
-
-                function windowSize() {
-                    return new THREE.Vector2(window.innerWidth, window.innerHeight);
-                }
-
-                function render(time) {
-
+                if (activeFieldRenderTarget === fieldRenderTarget) {
+                    renderer.setRenderTarget(fieldRenderTarget2);
+                    activeFieldRenderTarget = fieldRenderTarget2;
+                    activeFieldTextureValue.value = fieldRenderTarget.texture;
+                    activeAdvectionInputTextureValue.value = fieldRenderTarget.texture;
+                } else {
                     renderer.setRenderTarget(fieldRenderTarget);
-                    renderer.render(fieldScene, camera);
-
-                    if (activeBufferRenderTarget === bufferRenderTarget) {
-                        renderer.setRenderTarget(bufferRenderTarget2);
-                        uniforms.iBufferTexture.value = bufferRenderTarget.texture;
-                        activeBufferRenderTarget = bufferRenderTarget2;
-                    } else {
-                        renderer.setRenderTarget(bufferRenderTarget);
-                        uniforms.iBufferTexture.value = bufferRenderTarget2.texture;
-                        activeBufferRenderTarget = bufferRenderTarget;
-                    }
-                    renderer.render(bufferScene, camera);                    
-
-                    renderer.setRenderTarget(null); 
-                    renderer.render(scene, camera);
-
-                    time *= 0.001;  // convert to seconds
-                    uniforms.iTime.value = time;
-
-                    uniforms.iRotateSpeed.value += 0.0003;
-
-                    requestAnimationFrame(render);
+                    activeFieldRenderTarget = fieldRenderTarget;
+                    activeFieldTextureValue.value = fieldRenderTarget2.texture;
+                    activeAdvectionInputTextureValue.value = fieldRenderTarget2.texture;
                 }
 
+                renderer.render(externalForceScene, camera);              
+                renderer.render(advectionScene, camera);
+                for (var i = 0; i < 10; i++) {
+                    renderer.render(divergenceScene, camera);
+                }
+               
+                if (activeBufferRenderTarget === bufferRenderTarget) {
+                    renderer.setRenderTarget(bufferRenderTarget2);
+                    activeBufferRenderTarget = bufferRenderTarget2;
+                    activeBufferTextureValue.value = bufferRenderTarget.texture;
+                    activeAdvectionInputTextureValue.value = bufferRenderTarget.texture;
+                } else {
+                    renderer.setRenderTarget(bufferRenderTarget);
+                    activeBufferRenderTarget = bufferRenderTarget;
+                    activeBufferTextureValue.value = bufferRenderTarget2.texture;
+                    activeAdvectionInputTextureValue.value = bufferRenderTarget2.texture;
+                }
+                
+                if (frameCount < 2) {
+                    frameCount++;
+                    renderer.render(bufferInitScene, camera);
+                }
+                renderer.render(advectionScene, camera);                    
+
+                renderer.setRenderTarget(null); 
+                renderer.render(scene, camera);
 
                 requestAnimationFrame(render);
-
             }
 
-            function loadTexture(url) {
-                return new Promise((resolve, reject) => {
-                    new THREE.TextureLoader().load(
-                        url,
-                        texture => resolve(texture),
-                        undefined,
-                        err => reject(err)
-                    );
-                });
-            }
 
-            main().catch(e => { 
-                console.log(e); 
-            });
+            requestAnimationFrame(render);
+
           
           </script>
 
