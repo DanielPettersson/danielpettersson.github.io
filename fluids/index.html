@@ -58,7 +58,7 @@
             uniform vec2 iWindowSize;
             uniform sampler2D iFieldTexture;
 
-            #define dampening .9995
+            #define dampening .999
             
             void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 
@@ -126,6 +126,10 @@
                     fragColor = vec4(.508, .5, .0, 1.);
                 } else if (uv.x > .99 && uv.y > .49 && uv.y < .51) {
                     fragColor = vec4(.492, .5, .0, 1.);
+                } else if (uv.y > .99 && uv.x > .49 && uv.x < .51) {
+                    fragColor = vec4(.5, .492, .0, 1.);
+                } else if (uv.y < .01 && uv.x > .49 && uv.x < .51) {
+                    fragColor = vec4(.5, .508, .0, 1.);
                 } else {
                     fragColor = texture(iFieldTexture, uv);
                 }
@@ -148,10 +152,14 @@
                 
                 vec2 uv = fragCoord / iWindowSize;
 
-                if (uv.x < .02 && uv.y > .49 && uv.y < .51) {
+                if (uv.x < .01 && uv.y > .49 && uv.y < .51) {
                     fragColor = vec4(1., .0, .0, 1.);
-                } else if (uv.x > .98 && uv.y > .49 && uv.y < .51) {
+                } else if (uv.x > .99 && uv.y > .49 && uv.y < .51) {
                     fragColor = vec4(0., 1., .0, 1.);
+                } else if (uv.y > .99 && uv.x > .49 && uv.x < .51) {
+                    fragColor = vec4(0., 0., 1., 1.);
+                } else if (uv.y < .01 && uv.x > .49 && uv.x < .51) {
+                    fragColor = vec4(.8, .8, 0., 1.);
                 } else {
                     fragColor = texture(iFieldTexture, uv);
                 }
