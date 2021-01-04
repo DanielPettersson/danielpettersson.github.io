@@ -80,7 +80,12 @@
             void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 
                 vec2 uv = fragCoord / iWindowSize;
-                fragColor = texture(iFieldTexture, uv);
+
+                if (uv.x < .1 && uv.y > .49 && uv.y < .51) {
+                    fragColor = vec4(.505, .5, .0, 1.);
+                } else {
+                    fragColor = texture(iFieldTexture, uv);
+                }
             }
 
             void main() {
@@ -94,12 +99,24 @@
             #include <common>
 
             uniform vec2 iWindowSize;
-            #define S 5. // Scale
+            #define S 8. // Scale
             
             void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 
                 vec2 uv = floor(S * fragCoord.xy * vec2(iWindowSize.x / iWindowSize.y, 1) / iWindowSize.xy);
                 fragColor = vec4(vec3(mod(uv.x + uv.y, 2.)), 1);
+            }
+
+            void main() {
+                mainImage(gl_FragColor, gl_FragCoord.xy);
+            }
+
+        </script>
+
+        <script id="fieldInitShader" type="x-shader/x-fragment">
+            
+            void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+                fragColor = vec4(.5, .5, .0, 1.);
             }
 
             void main() {
@@ -125,6 +142,7 @@
             const divergenceScene = new THREE.Scene();
             const externalForceScene = new THREE.Scene();
             const bufferInitScene = new THREE.Scene();
+            const fieldInitScene = new THREE.Scene();
 
             const renderTargetOptions = {
                 type: THREE.FloatType,
@@ -213,6 +231,15 @@
                 )
             );
 
+            fieldInitScene.add(
+                new THREE.Mesh(
+                    new THREE.PlaneBufferGeometry(2, 2), 
+                    new THREE.ShaderMaterial({
+                        fragmentShader: document.getElementById('fieldInitShader').textContent
+                    })
+                )
+            );
+
             window.addEventListener( 'resize', function() {
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 windowSize = getWindowSize();
@@ -224,6 +251,42 @@
 
             function render(time) {
 
+                if (frameCount < 1) {
+                    switchFieldRenderTarget();
+                    renderer.render(fieldInitScene, camera);
+                    switchFieldRenderTarget();
+                    renderer.render(fieldInitScene, camera);
+                }
+
+                switchFieldRenderTarget();
+                renderer.render(externalForceScene, camera);
+                switchFieldRenderTarget();
+                renderer.render(advectionScene, camera);
+                for (var i = 0; i < 10; i++) {
+                    switchFieldRenderTarget();
+                    renderer.render(divergenceScene, camera);
+                }
+                               
+                
+                if (frameCount < 1) {
+                    switchBufferRenderTarget();
+                    renderer.render(bufferInitScene, camera);
+                    switchBufferRenderTarget();
+                    renderer.render(bufferInitScene, camera);
+                }
+                switchBufferRenderTarget();
+                renderer.render(advectionScene, camera);                    
+
+                renderer.setRenderTarget(null); 
+                renderer.render(scene, camera);
+
+                frameCount++;
+
+                requestAnimationFrame(render);
+            }
+
+            function switchFieldRenderTarget() {
+                
                 if (activeFieldRenderTarget === fieldRenderTarget) {
                     renderer.setRenderTarget(fieldRenderTarget2);
                     activeFieldRenderTarget = fieldRenderTarget2;
@@ -235,13 +298,10 @@
                     activeFieldTextureValue.value = fieldRenderTarget2.texture;
                     activeAdvectionInputTextureValue.value = fieldRenderTarget2.texture;
                 }
+            }
 
-                renderer.render(externalForceScene, camera);              
-                renderer.render(advectionScene, camera);
-                for (var i = 0; i < 10; i++) {
-                    renderer.render(divergenceScene, camera);
-                }
-               
+            function switchBufferRenderTarget() {
+
                 if (activeBufferRenderTarget === bufferRenderTarget) {
                     renderer.setRenderTarget(bufferRenderTarget2);
                     activeBufferRenderTarget = bufferRenderTarget2;
@@ -253,19 +313,7 @@
                     activeBufferTextureValue.value = bufferRenderTarget2.texture;
                     activeAdvectionInputTextureValue.value = bufferRenderTarget2.texture;
                 }
-                
-                if (frameCount < 2) {
-                    frameCount++;
-                    renderer.render(bufferInitScene, camera);
-                }
-                renderer.render(advectionScene, camera);                    
-
-                renderer.setRenderTarget(null); 
-                renderer.render(scene, camera);
-
-                requestAnimationFrame(render);
             }
-
 
             requestAnimationFrame(render);
 
