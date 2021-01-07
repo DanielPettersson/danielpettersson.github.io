@@ -16,12 +16,28 @@
         <script id="outputShader" type="x-shader/x-fragment">
             
             uniform vec2 iWindowSize;
+            uniform sampler2D iFieldTexture;
             uniform sampler2D iBufferTexture;
             
             void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 
                 vec2 uv = fragCoord / iWindowSize;
-                fragColor = texture(iBufferTexture, uv);
+
+                vec2 tx = 1. / iWindowSize;
+
+                float fxnyn = texture(iFieldTexture, uv + vec2(-tx.x, -tx.y)).x;
+                float fxpyn = texture(iFieldTexture, uv + vec2(tx.x, -tx.y)).x;
+
+                float fxny_ = texture(iFieldTexture, uv + vec2(-tx.x, 0.)).x;
+                float fxpy_ = texture(iFieldTexture, uv + vec2(tx.x, 0.)).x;
+
+                float fxnyp = texture(iFieldTexture, uv + vec2(-tx.x, tx.y)).x;
+                float fxpyp = texture(iFieldTexture, uv + vec2(tx.x, tx.y)).x;                
+
+                float div = (fxpyn + fxpy_ + fxpyp - fxnyn - fxny_ - fxnyp) * 5.;
+
+
+                fragColor = texture(iBufferTexture, uv) + vec4(vec3(div), 1.);
             }
 
             void main() {
@@ -137,7 +153,7 @@
         <script id="bufferColorizeShader" type="x-shader/x-fragment">
             
             uniform vec2 iWindowSize;
-            uniform sampler2D iFieldTexture;
+            uniform sampler2D iBufferTexture;
             
             void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 
@@ -152,7 +168,7 @@
                 } else if (uv.y < .03 && uv.x > .6 && uv.x < .63) {
                     fragColor = vec4(.8, .8, 0., 1.);
                 } else {
-                    fragColor = texture(iFieldTexture, uv);
+                    fragColor = texture(iBufferTexture, uv);
                 }
             }
 
@@ -224,6 +240,7 @@
                         fragmentShader: document.getElementById('outputShader').textContent,
                         uniforms: {
                             iWindowSize:  windowSizeValue,
+                            iFieldTexture: activeFieldTextureValue,
                             iBufferTexture: activeBufferTextureValue
                         }
                     })
@@ -291,7 +308,7 @@
                         fragmentShader: document.getElementById('bufferColorizeShader').textContent,
                         uniforms: {
                             iWindowSize:  windowSizeValue,
-                            iFieldTexture: activeBufferTextureValue
+                            iBufferTexture: activeBufferTextureValue
                         },
                     })
                 )
@@ -341,7 +358,7 @@
                 switchFieldRenderTarget();
                 renderer.render(dampeningScene, camera);
                 
-                for (var i = 0; i < 70; i++) {
+                for (var i = 0; i < 60; i++) {
                     switchFieldRenderTarget();
                     renderer.render(divergenceScene, camera);
                 }
