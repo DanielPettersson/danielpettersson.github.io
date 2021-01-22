@@ -116,8 +116,8 @@
             uniform vec2 iMouseCurrent;
 
             #define mouseEffectRadius .07 
-            #define mousePower .07 
-            #define maxMouseDir .7
+            #define mousePower .05 
+            #define maxMouseDir .3
 
             float sdOrientedBox(in vec2 p, in vec2 a, in vec2 b, float th) {
                 float l = length(b-a);
@@ -135,7 +135,7 @@
                 vec2 mouseCurrentUv = iMouseCurrent / iWindowSize;
 
                 float mouseEffect = clamp(1. - sdOrientedBox(uv, mousePreviousUv, mouseCurrentUv, .001) / mouseEffectRadius, 0., 1.); 
-                vec2 mouseDir = (iMouseCurrent - iMousePrevious) * mousePower * mouseEffect;
+                vec2 mouseDir = (iMouseCurrent - iMousePrevious) * mousePower * pow(mouseEffect, 3.);
                 
                 if (length(mouseDir) > maxMouseDir) {
                     mouseDir = normalize(mouseDir) * maxMouseDir;
@@ -158,20 +158,31 @@
             uniform vec2 iWindowSize;
             uniform sampler2D iBufferTexture;
 
+            uniform vec2 iMousePrevious;
             uniform vec2 iMouseCurrent;
             uniform vec3 iMouseColor;
 
-            #define mouseEffectRadius .04
+            #define mouseEffectRadius .05
+
+            float sdOrientedBox(in vec2 p, in vec2 a, in vec2 b, float th) {
+                float l = length(b-a);
+                vec2  d = (b-a)/l;
+                vec2  q = (p-(a+b)*0.5);
+                    q = mat2(d.x,-d.y,d.y,d.x)*q;
+                    q = abs(q)-vec2(l,th)*0.5;
+                return length(max(q,0.0)) + min(max(q.x,q.y),0.0);    
+            }
             
             void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 
                 vec2 uv = fragCoord / iWindowSize;
+                vec2 mousePreviousUv = iMousePrevious / iWindowSize;
                 vec2 mouseCurrentUv = iMouseCurrent / iWindowSize;
 
-                float mouseEffect = clamp(1. - length(uv - mouseCurrentUv) / mouseEffectRadius, 0., 1.);
+                float mouseEffect = clamp(1. - sdOrientedBox(uv, mousePreviousUv, mouseCurrentUv, .001) / mouseEffectRadius, 0., 1.);
                 vec3 currentColor = texture(iBufferTexture, uv).xyz;
 
-                fragColor = vec4(mix(currentColor, iMouseColor, mouseEffect * mouseEffect), 1.);
+                fragColor = vec4(mix(currentColor, iMouseColor, pow(mouseEffect, 3.)), 1.);
             }
 
             void main() {
@@ -373,6 +384,7 @@
                         uniforms: {
                             iWindowSize:  windowSizeValue,
                             iBufferTexture: activeBufferTextureValue,
+                            iMousePrevious: previousMouseValue,
                             iMouseCurrent: currentMouseValue,
                             iMouseColor: mouseColorValue
                         },
