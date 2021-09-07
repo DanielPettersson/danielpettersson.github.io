@@ -136,7 +136,6 @@
                 else if (e.code === 'KeyZ') moves.push('z' + dir);
 
                 if (moves.length == 1) {
-                    console.log('direct rotate')
                     rotate(moves[0]);
                 }
 
@@ -193,7 +192,7 @@
 
                 var pd = 0;
                 new TWEEN.Tween({d: 0})
-                                .to({d: -Math.PI / 2}, 300)
+                                .to({d: -Math.PI / 2}, 500 - Math.min(moves.length, 3) * 100)
                                 .onUpdate(function() { 
                                     pivot.rotateOnWorldAxis(axis, this.d - pd)
                                     pd = this.d;
@@ -202,7 +201,6 @@
                                     moves.shift();
                                     if (moves.length > 0) {
                                         rotate(moves[0]);
-                                        console.log('queued rotate')
                                     }
                                  })
                                 .easing(TWEEN.Easing.Quartic.InOut)
