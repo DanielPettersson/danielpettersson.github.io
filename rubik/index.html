@@ -47,7 +47,7 @@
                                             'nz.jpg'
                                         ] );
 
-            camera.position.set(2.5, 2, 5);
+            camera.position.set(2, 1.7, 4);
             camera.lookAt(0, 0, 0);
             controls.update();
 
@@ -56,7 +56,7 @@
             scene.add( light )
 
             const light2 = new THREE.DirectionalLight(0xffffbb, 0.5);
-            light2.position.set( -2, 0, 1 );
+            light2.position.set( -2, -1, 1 );
             scene.add( light2 )
 
             const cubeGeometry = new RoundedBoxGeometry();
@@ -65,7 +65,7 @@
 
             const cubes = [];
 
-            const blackMaterial = new THREE.MeshPhysicalMaterial({ color: 0x111111, roughness: 0.2, envMap: scene.background, reflectivity: 0.9 });
+            const blackMaterial = new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.2, envMap: scene.background, reflectivity: 0.9 });
             const whiteMaterial = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
             const orangeMaterial = new THREE.MeshStandardMaterial({ color: 0xFF9900 });
             const greenMaterial = new THREE.MeshStandardMaterial({ color: 0x00FF00 });
@@ -240,7 +240,7 @@
                 
             }
 
-            for (var i = 0; i < 20; i++) rotateRandom();
+            for (var i = 0; i < 25; i++) rotateRandom();
 
             requestAnimationFrame(render);
           
