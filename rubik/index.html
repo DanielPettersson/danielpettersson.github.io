@@ -36,6 +36,17 @@
             controls.minPolarAngle = Math.PI / 2 - maxControlRotation;
             controls.maxPolarAngle = Math.PI / 2 + maxControlRotation;
 
+            scene.background = new THREE.CubeTextureLoader()
+                                        .setPath( '../resources/skybox/' )
+                                        .load( [
+                                            'px.jpg',
+                                            'nx.jpg',
+                                            'py.jpg',
+                                            'ny.jpg',
+                                            'pz.jpg',
+                                            'nz.jpg'
+                                        ] );
+
             camera.position.set(2.5, 2, 5);
             camera.lookAt(0, 0, 0);
             controls.update();
@@ -54,7 +65,7 @@
 
             const cubes = [];
 
-            const blackMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3 });
+            const blackMaterial = new THREE.MeshPhysicalMaterial({ color: 0x111111, roughness: 0.2, envMap: scene.background, reflectivity: 0.9 });
             const whiteMaterial = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
             const orangeMaterial = new THREE.MeshStandardMaterial({ color: 0xFF9900 });
             const greenMaterial = new THREE.MeshStandardMaterial({ color: 0x00FF00 });
@@ -121,25 +132,36 @@
                 camera.updateProjectionMatrix();
             }, false );
 
-            const moves = [];
+            
 
             document.addEventListener('keydown', function(e) {
                 var dir = e.shiftKey ? '\'' : '';
-                if (e.code === 'KeyR') moves.push('r' + dir);
-                else if (e.code === 'KeyL') moves.push('l' + dir);
-                else if (e.code === 'KeyF') moves.push('f' + dir);
-                else if (e.code === 'KeyB') moves.push('b' + dir);
-                else if (e.code === 'KeyU') moves.push('u' + dir);
-                else if (e.code === 'KeyD') moves.push('d' + dir);
-                else if (e.code === 'KeyX') moves.push('x' + dir);
-                else if (e.code === 'KeyY') moves.push('y' + dir);
-                else if (e.code === 'KeyZ') moves.push('z' + dir);
+                if (e.code === 'KeyR') queueRotation('r' + dir);
+                else if (e.code === 'KeyL') queueRotation('l' + dir);
+                else if (e.code === 'KeyF') queueRotation('f' + dir);
+                else if (e.code === 'KeyB') queueRotation('b' + dir);
+                else if (e.code === 'KeyU') queueRotation('u' + dir);
+                else if (e.code === 'KeyD') queueRotation('d' + dir);
+                else if (e.code === 'KeyX') queueRotation('x' + dir);
+                else if (e.code === 'KeyY') queueRotation('y' + dir);
+                else if (e.code === 'KeyZ') queueRotation('z' + dir);
+            });
 
+            function rotateRandom() {
+                var moves = ['r', 'l', 'f', 'b', 'u', 'd'];
+                var idx = Math.floor(Math.random() * moves.length);
+                var dir = Math.random() < 0.5 ? '' : '\'';
+                queueRotation(moves[idx] + dir);
+            }
+
+            const moves = [];
+
+            function queueRotation(r) {
+                moves.push(r);
                 if (moves.length == 1) {
                     rotate(moves[0]);
                 }
-
-            });
+            }
 
             function rotate(r) {
                 var rot = r.substring(0, 1).toLowerCase();
@@ -218,6 +240,7 @@
                 
             }
 
+            for (var i = 0; i < 20; i++) rotateRandom();
 
             requestAnimationFrame(render);
           
