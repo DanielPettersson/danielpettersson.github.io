@@ -3,9 +3,15 @@
 	<head>
 		<meta charset="utf-8">
 		<title>Rubik</title>
+
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
 		<style>
 			body { margin: 0; }
 			canvas { display: block; }
+            div#controls {
+                position: absolute;
+                margin: 1em
+            }
 		</style>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/16.3.5/Tween.min.js"></script>
@@ -14,12 +20,42 @@
     
 	<body>
 
+        <div id="controls">
+            <div class="input-group mb-3">
+                <input type="text" value="r'd'rd" class="form-control">
+                <span class="input-group-text">1</span>
+            </div>
+            <div class="input-group mb-3">
+                <input type="text" value="uru'r'u'f'uf" class="form-control">
+                <span class="input-group-text">2</span>
+            </div>
+            <div class="input-group mb-3">
+                <input type="text" value="u'l'ulufu'f'" class="form-control">
+                <span class="input-group-text">3</span>
+            </div>
+            <div class="input-group mb-3">
+                <input type="text" value="frur'u'f'" class="form-control">
+                <span class="input-group-text">4</span>
+            </div>
+            <div class="input-group mb-3">
+                <input type="text" value="rur'uruur'" class="form-control">
+                <span class="input-group-text">5</span>
+            </div>
+            <div class="input-group mb-3">
+                <input type="text" value="uru'l'ur'u'l" class="form-control">
+                <span class="input-group-text">6</span>
+            </div>
+        </div>            
+        
+
 		<script type="module">
 
             import * as THREE from 'https://cdn.skypack.dev/three';
             import { RoundedBoxGeometry } from 'https://cdn.skypack.dev/three/examples/jsm/geometries/RoundedBoxGeometry.js';
             import { OrbitControls } from 'https://cdn.skypack.dev/three/examples/jsm/controls/OrbitControls.js';
           
+            const regexp = /[rlfbudxyz]\'?/g;
+
             const renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
@@ -132,53 +168,65 @@
                 camera.updateProjectionMatrix();
             }, false );
 
-            
+            [...document.body.getElementsByTagName('input')].forEach(input => input.addEventListener("keydown", event => event.stopPropagation()));
 
             document.addEventListener('keydown', function(e) {
                 var dir = e.shiftKey ? '\'' : '';
-                if (e.code === 'KeyR') queueRotation('r' + dir);
-                else if (e.code === 'KeyL') queueRotation('l' + dir);
-                else if (e.code === 'KeyF') queueRotation('f' + dir);
-                else if (e.code === 'KeyB') queueRotation('b' + dir);
-                else if (e.code === 'KeyU') queueRotation('u' + dir);
-                else if (e.code === 'KeyD') queueRotation('d' + dir);
-                else if (e.code === 'KeyX') queueRotation('x' + dir);
-                else if (e.code === 'KeyY') queueRotation('y' + dir);
-                else if (e.code === 'KeyZ') queueRotation('z' + dir);
+                if (e.code === 'KeyR') rotate('r' + dir);
+                else if (e.code === 'KeyL') rotate('l' + dir);
+                else if (e.code === 'KeyF') rotate('f' + dir);
+                else if (e.code === 'KeyB') rotate('b' + dir);
+                else if (e.code === 'KeyU') rotate('u' + dir);
+                else if (e.code === 'KeyD') rotate('d' + dir);
+                else if (e.code === 'KeyX') rotate('x' + dir);
+                else if (e.code === 'KeyY') rotate('y' + dir);
+                else if (e.code === 'KeyZ') rotate('z' + dir);
+                else if (e.code === 'Digit1') algorithm(document.body.querySelector('div#controls > div:nth-child(1) > input').value);
+                else if (e.code === 'Digit2') algorithm(document.body.querySelector('div#controls > div:nth-child(2) > input').value);
+                else if (e.code === 'Digit3') algorithm(document.body.querySelector('div#controls > div:nth-child(3) > input').value);
+                else if (e.code === 'Digit4') algorithm(document.body.querySelector('div#controls > div:nth-child(4) > input').value);
+                else if (e.code === 'Digit5') algorithm(document.body.querySelector('div#controls > div:nth-child(5) > input').value);
+                else if (e.code === 'Digit6') algorithm(document.body.querySelector('div#controls > div:nth-child(6) > input').value);
             });
 
             function rotateRandom() {
                 var moves = ['r', 'l', 'f', 'b', 'u', 'd'];
                 var idx = Math.floor(Math.random() * moves.length);
                 var dir = Math.random() < 0.5 ? '' : '\'';
-                queueRotation(moves[idx] + dir);
+                rotate(moves[idx] + dir);
+            }
+
+            function algorithm(alg) {
+                var mvs = alg.match(regexp)
+                if (mvs) mvs.forEach(m => rotate(m));
             }
 
             const moves = [];
 
-            function queueRotation(r) {
+            function rotate(r) {
                 moves.push(r);
                 if (moves.length == 1) {
-                    rotate(moves[0]);
+                    _rotate(moves[0]);
                 }
             }
 
-            function rotate(r) {
+
+            function _rotate(r) {
                 var rot = r.substring(0, 1).toLowerCase();
                 var dir = r.length == 2 && r.substring(1, 2) === '\'' ? -1 : 1;
 
-                if (rot === 'r') _rotate(new THREE.Vector3(dir * 1, 0, 0), new THREE.Vector3(1, 0, 0));
-                else if (rot === 'l') _rotate(new THREE.Vector3(dir * -1, 0, 0), new THREE.Vector3(-1, 0, 0));
-                else if (rot === 'f') _rotate(new THREE.Vector3(0, 0, dir * 1), new THREE.Vector3(0, 0, 1));
-                else if (rot === 'b') _rotate(new THREE.Vector3(0, 0, dir * -1), new THREE.Vector3(0, 0, -1));
-                else if (rot === 'u') _rotate(new THREE.Vector3(0, dir * 1, 0), new THREE.Vector3(0, 1, 0));
-                else if (rot === 'd') _rotate(new THREE.Vector3(0, dir * -1, 0), new THREE.Vector3(0, -1, 0));
-                else if (rot === 'x') _rotate(new THREE.Vector3(dir * 1, 0, 0), null);
-                else if (rot === 'y') _rotate(new THREE.Vector3(0, dir * 1, 0), null);
-                else if (rot === 'z') _rotate(new THREE.Vector3(0, 0, dir * 1), null);
+                if (rot === 'r') __rotate(new THREE.Vector3(dir * 1, 0, 0), new THREE.Vector3(1, 0, 0));
+                else if (rot === 'l') __rotate(new THREE.Vector3(dir * -1, 0, 0), new THREE.Vector3(-1, 0, 0));
+                else if (rot === 'f') __rotate(new THREE.Vector3(0, 0, dir * 1), new THREE.Vector3(0, 0, 1));
+                else if (rot === 'b') __rotate(new THREE.Vector3(0, 0, dir * -1), new THREE.Vector3(0, 0, -1));
+                else if (rot === 'u') __rotate(new THREE.Vector3(0, dir * 1, 0), new THREE.Vector3(0, 1, 0));
+                else if (rot === 'd') __rotate(new THREE.Vector3(0, dir * -1, 0), new THREE.Vector3(0, -1, 0));
+                else if (rot === 'x') __rotate(new THREE.Vector3(dir * 1, 0, 0), null);
+                else if (rot === 'y') __rotate(new THREE.Vector3(0, dir * 1, 0), null);
+                else if (rot === 'z') __rotate(new THREE.Vector3(0, 0, dir * 1), null);
             }
 
-            function _rotate(axis, layer) {
+            function __rotate(axis, layer) {
 
                 cubes.forEach(c => {
 
@@ -222,7 +270,7 @@
                                 .onComplete(function() { 
                                     moves.shift();
                                     if (moves.length > 0) {
-                                        rotate(moves[0]);
+                                        _rotate(moves[0]);
                                     }
                                  })
                                 .easing(TWEEN.Easing.Quartic.InOut)
